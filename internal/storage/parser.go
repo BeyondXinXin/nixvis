@@ -216,17 +216,22 @@ func (p *NginxLogParser) parseNginxLogLine(line string) (*NginxLogRecord, error)
 		referPath = matches[8]
 	}
 
+	pageviewFlag := 0
+	// pv过滤条件：status = 200、path 中不含 favicon、sitemap
+	if statusCode == 200 && !regexp.MustCompile(`favicon|sitemap`).MatchString(decodedPath) {
+		pageviewFlag = 1
+	}
+
 	return &NginxLogRecord{
-		ID:        0,
-		IP:        matches[1],
-		UserID:    matches[2],
-		Timestamp: timestamp,
-		Method:    matches[4],
-		Path:      decodedPath,
-		Status:    statusCode,
-		BytesSent: bytesSent,
-		Referer:   referPath,
-		UserAgent: matches[9],
-		CreatedAt: time.Now(),
+		ID:           0,
+		IP:           matches[1],
+		PageviewFlag: pageviewFlag,
+		Timestamp:    timestamp,
+		Method:       matches[4],
+		Path:         decodedPath,
+		Status:       statusCode,
+		BytesSent:    bytesSent,
+		Referer:      referPath,
+		UserAgent:    matches[9],
 	}, nil
 }

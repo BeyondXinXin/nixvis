@@ -13,17 +13,16 @@ var (
 )
 
 type NginxLogRecord struct {
-	ID        int64     `json:"id"`
-	IP        string    `json:"ip"`
-	UserID    string    `json:"user_id"`
-	Timestamp time.Time `json:"timestamp"`
-	Method    string    `json:"method"`
-	Path      string    `json:"path"`
-	Status    int       `json:"status"`
-	BytesSent int       `json:"bytes_sent"`
-	Referer   string    `json:"referer"`
-	UserAgent string    `json:"user_agent"`
-	CreatedAt time.Time `json:"created_at"`
+	ID           int64     `json:"id"`
+	IP           string    `json:"ip"`
+	PageviewFlag int       `json:"pageview_flag"`
+	Timestamp    time.Time `json:"timestamp"`
+	Method       string    `json:"method"`
+	Path         string    `json:"path"`
+	Status       int       `json:"status"`
+	BytesSent    int       `json:"bytes_sent"`
+	Referer      string    `json:"referer"`
+	UserAgent    string    `json:"user_agent"`
 }
 
 type Repository struct {
@@ -72,45 +71,6 @@ func (r *Repository) Close() error {
 	return nil
 }
 
-// 插入日志记录
-func (r *Repository) InsertLog(log NginxLogRecord) error {
-	// 开始事务
-	tx, err := r.db.Begin()
-	if err != nil {
-		return err
-	}
-	defer func() {
-		if err != nil {
-			tx.Rollback()
-		}
-	}()
-
-	// 插入到 nginx_logs 表
-	_, err = tx.Exec(`
-		 INSERT INTO nginx_logs (ip, user_id, timestamp, method, path, status_code, bytes_sent, referer, user_agent)
-		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-	 `, log.IP, log.UserID, log.Timestamp, log.Method, log.Path, log.Status, log.BytesSent, log.Referer, log.UserAgent)
-	if err != nil {
-		return err
-	}
-
-	// 插入到 recent_logs 表
-	now := time.Now()
-	currentHourStart := time.Date(now.Year(), now.Month(), now.Day(), now.Hour(), 0, 0, 0, now.Location())
-	if log.Timestamp.After(currentHourStart) || log.Timestamp.Equal(currentHourStart) {
-		_, err = tx.Exec(`
-		 INSERT INTO recent_logs (ip, user_id, timestamp, method, path, status_code, bytes_sent, referer, user_agent)
-		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-		 `, log.IP, log.UserID, log.Timestamp, log.Method, log.Path, log.Status, log.BytesSent, log.Referer, log.UserAgent)
-		if err != nil {
-			return err
-		}
-	}
-
-	// 提交事务
-	return tx.Commit()
-}
-
 // 清理过期数据
 func (r *Repository) CleanupOldData() error {
 	// 检查当前小时是否已清理
@@ -123,7 +83,8 @@ func (r *Repository) CleanupOldData() error {
 	}
 
 	// 获取当前小时开始时间
-	currentHourStart := time.Date(now.Year(), now.Month(), now.Day(), now.Hour(), 0, 0, 0, now.Location())
+	currentHourStart := time.Date(
+		now.Year(), now.Month(), now.Day(), now.Hour(), 0, 0, 0, now.Location())
 
 	// 执行清理操作
 	result, err := r.db.Exec(`
@@ -162,7 +123,9 @@ func (r *Repository) BatchInsertLogs(logs []NginxLogRecord) error {
 
 	// 准备批量插入语句
 	stmtNginx, err := tx.Prepare(`
-        INSERT INTO nginx_logs (ip, user_id, timestamp, method, path, status_code, bytes_sent, referer, user_agent)
+        INSERT INTO nginx_logs (
+		ip, pageview_flag, timestamp, method, path, 
+		status_code, bytes_sent, referer, user_agent)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `)
 	if err != nil {
@@ -171,7 +134,9 @@ func (r *Repository) BatchInsertLogs(logs []NginxLogRecord) error {
 	defer stmtNginx.Close()
 
 	stmtRecent, err := tx.Prepare(`
-        INSERT INTO recent_logs (ip, user_id, timestamp, method, path, status_code, bytes_sent, referer, user_agent)
+        INSERT INTO recent_logs (
+		ip, pageview_flag, timestamp, method, path, 
+		status_code, bytes_sent, referer, user_agent)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `)
 	if err != nil {
@@ -181,13 +146,14 @@ func (r *Repository) BatchInsertLogs(logs []NginxLogRecord) error {
 
 	// 获取当前小时开始时间点
 	now := time.Now()
-	currentHourStart := time.Date(now.Year(), now.Month(), now.Day(), now.Hour(), 0, 0, 0, now.Location())
+	currentHourStart := time.Date(
+		now.Year(), now.Month(), now.Day(), now.Hour(), 0, 0, 0, now.Location())
 
 	// 执行批量插入
 	for _, log := range logs {
 		// 原始日志表
 		_, err = stmtNginx.Exec(
-			log.IP, log.UserID, log.Timestamp, log.Method, log.Path,
+			log.IP, log.PageviewFlag, log.Timestamp, log.Method, log.Path,
 			log.Status, log.BytesSent, log.Referer, log.UserAgent,
 		)
 		if err != nil {
@@ -195,9 +161,10 @@ func (r *Repository) BatchInsertLogs(logs []NginxLogRecord) error {
 		}
 
 		// 最近日志表
-		if log.Timestamp.After(currentHourStart) || log.Timestamp.Equal(currentHourStart) {
+		if log.Timestamp.After(currentHourStart) ||
+			log.Timestamp.Equal(currentHourStart) {
 			_, err = stmtRecent.Exec(
-				log.IP, log.UserID, log.Timestamp, log.Method, log.Path,
+				log.IP, log.PageviewFlag, log.Timestamp, log.Method, log.Path,
 				log.Status, log.BytesSent, log.Referer, log.UserAgent,
 			)
 			if err != nil {
@@ -217,22 +184,21 @@ func (r *Repository) createTables() error {
 		CREATE TABLE IF NOT EXISTS nginx_logs (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			ip TEXT NOT NULL,
-			user_id TEXT NOT NULL,
+			pageview_flag INTEGER NOT NULL DEFAULT 0,
 			timestamp DATETIME NOT NULL,
 			method TEXT NOT NULL,
 			path TEXT NOT NULL,
 			status_code INTEGER NOT NULL,
 			bytes_sent INTEGER NOT NULL,
 			referer TEXT NOT NULL,
-			user_agent TEXT NOT NULL,
-			created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+			user_agent TEXT NOT NULL
 		);
 		
 		-- 最新1小时数据表
 		CREATE TABLE IF NOT EXISTS recent_logs (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			ip TEXT NOT NULL,
-			user_id TEXT NOT NULL,
+			pageview_flag INTEGER NOT NULL DEFAULT 0,
 			timestamp DATETIME NOT NULL,
 			method TEXT NOT NULL,
 			path TEXT NOT NULL,

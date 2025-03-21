@@ -34,12 +34,15 @@ func main() {
 	logParser := storage.NewNginxLogParser(
 		repository, "./data/blog.beyondxin.top.log")
 
+	// 创建统计数据对象
+	summary := storage.NewSummary(repository)
+
 	// 启动定时扫描
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	// 启动定时任务
-	go runMaintenanceScheduler(ctx, logParser, repository)
+	go runMaintenanceScheduler(ctx, logParser, summary, repository)
 
 	// 等待程序退出
 	shutdownSignal := make(chan os.Signal, 1)
@@ -63,12 +66,13 @@ func main() {
 func runMaintenanceScheduler(
 	ctx context.Context,
 	parser *storage.NginxLogParser,
+	summary *storage.Summary,
 	repo *storage.Repository) {
 
 	logrus.Info("启动Nginx日志扫描任务")
 
 	// 初始扫描
-	performMaintenance(parser, repo)
+	performMaintenance(parser, summary, repo)
 
 	// 定时扫描 - 每2分钟一次
 	ticker := time.NewTicker(2 * time.Minute)
@@ -77,7 +81,7 @@ func runMaintenanceScheduler(
 	for {
 		select {
 		case <-ticker.C:
-			performMaintenance(parser, repo)
+			performMaintenance(parser, summary, repo)
 		case <-ctx.Done():
 			logrus.Info("停止Nginx日志扫描任务")
 			return
@@ -88,6 +92,7 @@ func runMaintenanceScheduler(
 // 执行维护任务
 func performMaintenance(
 	parser *storage.NginxLogParser,
+	summary *storage.Summary,
 	repo *storage.Repository) {
 
 	logrus.Info("开始扫描Nginx日志")
@@ -104,7 +109,11 @@ func performMaintenance(
 	}
 
 	// 3. 生成统计数据
-	// TODO: 添加生成统计数据的逻辑
+	if err := summary.UpdateStats(); err != nil {
+		logrus.Errorf("生成统计数据失败: %v", err)
+		return
+	}
+	summary.GetStatsData()
 
 	// 4. 生成网页
 	// TODO: 添加生成网页的逻辑
