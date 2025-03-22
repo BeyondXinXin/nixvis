@@ -1,4 +1,6 @@
 bin/
-data/
 go.sum
 diff.patch
+data/*
+!data/static/
+!data/templates/

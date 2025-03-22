@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ .title }}</title>
+    <meta http-equiv="refresh" content="70">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="/static/css/style.css?v={{ .buildTime }}">
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h1>{{ .title }}</h1>
+        </header>
+
+        <div class="chart-container">
+
+            <div class="controls-container">
+                <select id="date-range">
+                    <option value="today">今天</option>
+                    <option value="week">本周</option>
+                    <option value="last7days">最近7天</option>
+                    <option value="month">本月</option>
+                    <option value="last30days">最近30天</option>
+                </select>
+                <div class="view-toggle">
+                    <button class="toggle-btn active" data-view="hourly">按时</button>
+                    <button class="toggle-btn" data-view="daily">按天</button>
+                </div>
+            </div>
+
+            <canvas id="visitsChart"></canvas>
+        </div>
+
+        <footer>
+            <p>NixVis - Nginx 网站日志分析工具</p>
+        </footer>
+
+        <script src="/static/js/chart.js"></script>
+    </div>
+</body>
+
+</html>

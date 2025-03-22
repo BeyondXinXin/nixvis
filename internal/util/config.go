@@ -11,10 +11,15 @@ var (
 
 type Config struct {
 	System SystemConfig `json:"system"`
+	Server ServerConfig `json:"server"`
 }
 
 type SystemConfig struct {
 	LogDestination string `json:"logDestination"`
+}
+
+type ServerConfig struct {
+	Port string `json:"Port"`
 }
 
 // ReadConfig 读取配置文件并返回微信配置
