@@ -89,6 +89,8 @@ func (s *Summary) UpdateStats() error {
 		logrus.Infof("%s (%s) 当前小时统计数据: PV=%d, UV=%d, Traffic=%d",
 			website.Name, id, stats.PV, stats.UV, stats.Traffic)
 
+		// 更新统计数据文件
+		s.GetStatsDataForWebsite(id)
 	}
 
 	return nil
