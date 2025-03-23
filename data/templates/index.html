@@ -5,30 +5,46 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ .title }}</title>
-    <meta http-equiv="refresh" content="70">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link rel="stylesheet" href="/static/css/style.css?v={{ .buildTime }}">
+    <link rel="stylesheet" href="/static/css/style.css">
 </head>
 
 <body>
     <div class="container">
         <header>
-            <h1>{{ .title }}</h1>
+            <h1>Nginx访问统计</h1>
         </header>
 
         <div class="chart-container">
 
             <div class="controls-container">
-                <select id="date-range">
-                    <option value="today">今天</option>
-                    <option value="week">本周</option>
-                    <option value="last7days">最近7天</option>
-                    <option value="month">本月</option>
-                    <option value="last30days">最近30天</option>
-                </select>
-                <div class="view-toggle">
-                    <button class="toggle-btn active" data-view="hourly">按时</button>
-                    <button class="toggle-btn" data-view="daily">按天</button>
+                <div class="overall-stats">
+                    <div class="stat-item">
+                        <span class="stat-label">访客数(UV):</span>
+                        <span class="stat-value" id="total-uv">-</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">浏览量(PV):</span>
+                        <span class="stat-value" id="total-pv">-</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">流量:</span>
+                        <span class="stat-value" id="total-traffic">-</span>
+                    </div>
+                </div>
+
+                <div class="control-options">
+                    <select id="date-range">
+                        <option value="today">今天</option>
+                        <option value="week">本周</option>
+                        <option value="month">本月</option>
+                        <option value="last7days">最近7天</option>
+                        <option value="last30days">最近30天</option>
+                    </select>
+                    <div class="view-toggle">
+                        <button class="toggle-btn active" data-view="hourly">按时</button>
+                        <button class="toggle-btn" data-view="daily">按天</button>
+                    </div>
                 </div>
             </div>
 
@@ -39,7 +55,8 @@
             <p>NixVis - Nginx 网站日志分析工具</p>
         </footer>
 
-        <script src="/static/js/chart.js"></script>
+        <!-- <script src="/static/js/chart.js"></script> -->
+        <script type="module" src="/static/js/main.js"></script>
     </div>
 </body>
 

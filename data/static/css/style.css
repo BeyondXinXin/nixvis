@@ -10,126 +10,44 @@ body {
 .container {
     max-width: 1200px;
     margin: 0 auto;
-    padding: 20px;
+    padding: 10px;
 }
 
 header {
     text-align: center;
-    margin-bottom: 30px;
+    margin-bottom: 5px;
     border-bottom: 1px solid #eee;
-    padding-bottom: 20px;
+    padding-bottom: 10px;
 }
 
-h1,
-h2,
-h3 {
+h1 {
     color: #2c3e50;
+    margin-top: 10px;
+    margin-bottom: 10px;
 }
 
-.stats-container,
-.history-container {
-    background-color: white;
-    border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-    padding: 20px;
-    margin-bottom: 30px;
-}
-
-.summary-box {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 30px;
-}
-
-.stat-card {
-    flex: 1;
-    text-align: center;
-    padding: 20px;
-    background-color: #f8f9fa;
-    border-radius: 6px;
-    margin: 0 10px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-.stat-card h3 {
-    margin-top: 0;
-    color: #6c757d;
-}
-
-.stat-value {
-    font-size: 2rem;
-    font-weight: bold;
-    color: #007bff;
-}
-
-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 20px;
-}
-
-th,
-td {
-    padding: 12px 15px;
-    text-align: left;
-    border-bottom: 1px solid #e9ecef;
-}
-
-th {
-    background-color: #f8f9fa;
-    font-weight: 600;
-}
-
-tr:hover {
-    background-color: #f8f9fa;
-}
-
-.current-hour {
-    background-color: #e8f4ff;
-    font-weight: bold;
-}
-
-footer {
-    text-align: center;
-    padding: 20px;
-    color: #6c757d;
-    font-size: 0.9rem;
-    border-top: 1px solid #eee;
-}
-
-@media (max-width: 768px) {
-    .summary-box {
-        flex-direction: column;
-    }
-
-    .stat-card {
-        margin: 10px 0;
-    }
-}
-
-/* ...existing code... */
-
+/* 控制容器样式 */
 .controls-container {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 2px;
+    margin-bottom: 25px;
     padding: 1px 2px;
 }
 
-.date-filter select {
-    padding: 8px 12px;
-    border-radius: 4px;
-    border: 1px solid #ddd;
-    background-color: white;
-    font-size: 14px;
-    cursor: pointer;
+/* 添加右侧控制选项的样式 */
+.control-options {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
 }
 
+/* 视图切换容器 */
 .view-toggle {
     display: flex;
 }
 
+/* 切换按钮样式 */
 .toggle-btn {
     padding: 8px 16px;
     border: 1px solid #ddd;
@@ -153,16 +71,24 @@ footer {
     border-color: #007bff;
 }
 
+.toggle-btn.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* 图表容器 */
 .chart-container {
     background-color: white;
     border-radius: 8px;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-    padding: 20px 20px 60px 20px;
-    margin-bottom: 30px;
+    padding: 20px 20px 80px 20px;
+    margin-bottom: 0px;
     height: 400px;
 }
 
+/* 日期范围下拉菜单 */
 #date-range {
+    margin-right: 25px;
     appearance: none;
     padding: 10px 30px 10px 15px;
     border-radius: 4px;
@@ -179,19 +105,87 @@ footer {
     box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
 }
 
-#date-range option:not([disabled]) {
-    padding: 8px;
+/* 页脚样式 */
+footer {
+    text-align: center;
+    padding: 20px;
+    color: #6c757d;
+    font-size: 0.9rem;
+    border-top: 1px solid #eee;
 }
 
+/* 响应式布局调整 */
+@media (max-width: 768px) {
+    .controls-container {
+        flex-direction: column;
+        align-items: flex-end;
+    }
 
-/* 设置option组的样式 */
-#date-range optgroup {
-    font-weight: bold;
-    color: #555;
-    background-color: #f8f9fa;
+    #date-range {
+        margin-right: 0;
+        margin-bottom: 10px;
+    }
 }
 
-#date-range optgroup option {
-    font-weight: normal;
-    padding-left: 15px;
+/* 控制容器样式调整，使用space-between以便两边对齐 */
+.controls-container {
+    display: flex;
+    justify-content: space-between;
+    /* 改为space-between实现左右两侧分布 */
+    align-items: center;
+    margin-bottom: 25px;
+    padding: 1px 2px;
+}
+
+/* 添加整体统计样式 */
+.overall-stats {
+    display: flex;
+    gap: 20px;
+    /* 每个统计项之间的间距 */
+}
+
+.stat-item {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.stat-label {
+    font-size: 13px;
+    color: #666;
+}
+
+.stat-value {
+    font-size: 18px;
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+/* 控制选项样式 */
+.control-options {
+    display: flex;
+    align-items: center;
+}
+
+/* 响应式布局调整 */
+@media (max-width: 768px) {
+    .controls-container {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 15px;
+    }
+
+    .overall-stats {
+        justify-content: space-between;
+        width: 100%;
+    }
+
+    .control-options {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    #date-range {
+        margin-right: 10px;
+    }
 }
