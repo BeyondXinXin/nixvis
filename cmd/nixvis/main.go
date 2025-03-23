@@ -28,11 +28,15 @@ func main() {
 	// 初始化数据
 	repository, err := storage.NewRepository()
 	if err != nil {
-		logrus.WithField("error", err).Error("Failed to initialize the database")
+		logrus.WithField("error", err).Error("Failed to create database file")
 		return
 	}
-	repository.Init()
-	logParser := storage.NewNginxLogParser(repository, "./data/blog.beyondxin.top.log")
+	if err := repository.Init(); err != nil {
+		logrus.WithField("error", err).Error("Failed to create tables")
+		return
+	}
+
+	logParser := storage.NewNginxLogParser(repository)
 	summary := storage.NewSummary(repository)
 
 	// 启动定时任务

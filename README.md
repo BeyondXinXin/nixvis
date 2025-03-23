@@ -15,7 +15,7 @@ git diff --staged > diff.patch
 Generate Chinese commit messages according to these English guidelines:
 
 Format:
-    [Type] Concise description (Chinese)
+    Type Concise description (Chinese)
     (Use multi-line format only when changes are unrelated)
 
 Examples:

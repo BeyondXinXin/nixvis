@@ -61,7 +61,7 @@ export function getRangeText(range) {
     }
 }
 
-
+// 格式化流量数据
 export function formatTraffic(traffic) {
     if (traffic < 1024) {
         return traffic.toFixed(2) + ' B';
@@ -74,4 +74,45 @@ export function formatTraffic(traffic) {
     } else {
         return (traffic / (1024 * 1024 * 1024 * 1024)).toFixed(2) + ' TB';
     }
+}
+
+// 设置加载状态相关函数
+export function setLoadingState(isLoading) {
+    const statsElements = [
+        document.getElementById('total-uv'),
+        document.getElementById('total-pv'),
+        document.getElementById('total-traffic')
+    ];
+
+    statsElements.forEach(element => {
+        if (element) {
+            element.textContent = isLoading ? '加载中...' : '-';
+        }
+    });
+}
+
+// 重置统计信息
+export function resetStatistics() {
+    const statsElements = [
+        document.getElementById('total-uv'),
+        document.getElementById('total-pv'),
+        document.getElementById('total-traffic')
+    ];
+
+    statsElements.forEach(element => {
+        if (element) {
+            element.textContent = '-';
+        }
+    });
+}
+
+// 保存用户选择到本地存储
+export function saveUserPreference(key, value) {
+    localStorage.setItem(key, value);
+}
+
+// 从本地存储获取用户选择
+export function getUserPreference(key, defaultValue) {
+    const saved = localStorage.getItem(key);
+    return saved || defaultValue;
 }

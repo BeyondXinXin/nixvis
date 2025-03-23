@@ -12,7 +12,12 @@
 <body>
     <div class="container">
         <header>
-            <h1>Nginx访问统计</h1>
+            <h1>
+                <select id="website-selector" class="website-dropdown">
+                    <option value="">加载中...</option>
+                </select>
+                访问统计
+            </h1>
         </header>
 
         <div class="chart-container">
@@ -37,8 +42,8 @@
                     <select id="date-range">
                         <option value="today">今天</option>
                         <option value="week">本周</option>
-                        <option value="month">本月</option>
                         <option value="last7days">最近7天</option>
+                        <option value="month">本月</option>
                         <option value="last30days">最近30天</option>
                     </select>
                     <div class="view-toggle">

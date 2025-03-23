@@ -17,7 +17,11 @@ func InitDir() {
 
 	// 检查并创建配置文件 ./data/config.json
 	if _, err := os.Stat("./data/config.json"); os.IsNotExist(err) {
-		configJson := `{"system": {"logDestination": "stdout"}, "server": {"Port": ":8088"}}`
+		configJson :=
+			`{
+"system": {"logDestination": "file"}, 
+"server": {"Port": ":8088"}, 
+"websites": []}`
 		err := os.WriteFile("./data/config.json", []byte(configJson), 0644)
 		if err != nil {
 			panic(err)

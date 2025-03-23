@@ -3,7 +3,7 @@ import { getStartOfWeek, getDaysArray, getDateByTimeRange, formatTraffic } from 
 // 用于存储图表实例的模块级变量
 let visitsChart = null;
 
-
+// 显示错误消息
 export function displayErrorMessage(message, chartCanvas) {
     // 清除现有图表
     if (visitsChart) {
@@ -32,9 +32,8 @@ export function displayErrorMessage(message, chartCanvas) {
     }
 }
 
-
+// 处理数据
 export function processStatsData(statsData, timeRange, viewType) {
-    // 处理按小时的数据
     if (viewType === 'hourly') {
         // 处理按小时的数据
         if (timeRange === 'week' || timeRange === 'last7days' || timeRange === 'last30days' || timeRange === 'month') {
@@ -206,7 +205,7 @@ export function processStatsData(statsData, timeRange, viewType) {
     return { labels: [], visitors: [], pageviews: [] };
 }
 
-
+// 更新整体统计数据
 export function updateOverallStats(statsData, timeRange) {
     // 根据timeRange计算日期范围
     let startDate, endDate;
@@ -271,7 +270,7 @@ export function updateOverallStats(statsData, timeRange) {
     document.getElementById('total-traffic').textContent = trafficDisplay;
 }
 
-
+// 渲染图表
 export function renderChart(ctx, data, range, currentView) {
     // 清除错误消息
     const errorMsg = document.querySelector('.chart-error-message');
@@ -428,4 +427,45 @@ export function renderChart(ctx, data, range, currentView) {
 
     // 创建新图表
     visitsChart = new Chart(ctx, chartConfig);
+}
+
+// 更新图表
+export function updateChart(ctx, statsData, range, view) {
+    // 如果没有数据，不渲染图表
+    if (!statsData) {
+        return;
+    }
+
+    // 处理数据并渲染图表
+    const chartData = processStatsData(statsData, range, view);
+    renderChart(ctx, chartData, range, view);
+
+    // 更新整体统计数据
+    updateOverallStats(statsData, range);
+}
+
+// 更新视图切换按钮状态
+export function updateViewToggleButtons(range, currentView, viewToggleBtns) {
+    // 如果选择了"今天"，强制使用"按小时"视图并禁用"按天"按钮
+    if (range === 'today') {
+        const dailyBtn = document.querySelector('.toggle-btn[data-view="daily"]');
+        const hourlyBtn = document.querySelector('.toggle-btn[data-view="hourly"]');
+
+        dailyBtn.classList.add('disabled');
+        dailyBtn.disabled = true;
+
+        // 如果当前是按天视图，切换到按小时视图
+        if (currentView === 'daily') {
+            // 更新按钮状态
+            viewToggleBtns.forEach(btn => btn.classList.remove('active'));
+            hourlyBtn.classList.add('active');
+            return 'hourly'; // 返回新的视图模式
+        }
+    } else {
+        // 其他日期范围，启用"按天"按钮
+        const dailyBtn = document.querySelector('.toggle-btn[data-view="daily"]');
+        dailyBtn.classList.remove('disabled');
+        dailyBtn.disabled = false;
+    }
+    return currentView; // 返回不变的视图模式
 }

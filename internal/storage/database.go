@@ -2,8 +2,10 @@ package storage
 
 import (
 	"database/sql"
+	"fmt"
 	"time"
 
+	"github.com/beyondxinxin/nixvis/internal/util"
 	"github.com/sirupsen/logrus"
 	_ "modernc.org/sqlite"
 )
@@ -86,31 +88,38 @@ func (r *Repository) CleanupOldData() error {
 	currentHourStart := time.Date(
 		now.Year(), now.Month(), now.Day(), now.Hour(), 0, 0, 0, now.Location())
 
-	// 执行清理操作
-	result, err := r.db.Exec(`
-	 DELETE FROM recent_logs 
-	 WHERE timestamp < ? `, currentHourStart)
+	// 获取所有网站ID并清理它们的recent_logs表
+	totalRowsAffected := int64(0)
+	for _, websiteID := range util.GetAllWebsiteIDs() {
+		recentTable := fmt.Sprintf("%s_recent_logs", websiteID)
 
-	if err != nil {
-		return err
+		// 执行清理操作
+		result, err := r.db.Exec(fmt.Sprintf(`
+         DELETE FROM "%s" 
+         WHERE timestamp < ?`, recentTable), currentHourStart)
+
+		if err != nil {
+			return fmt.Errorf("清理 %s 表时出错: %w", recentTable, err)
+		}
+
+		// 累计清理结果
+		rowsAffected, _ := result.RowsAffected()
+		totalRowsAffected += rowsAffected
 	}
-
-	// 记录清理结果
-	rowsAffected, _ := result.RowsAffected()
 
 	// 更新清理标记
 	r.lastCleanupHour = currentHour
 
 	// 记录一下清理的记录数
-	if rowsAffected > 0 {
-		logrus.Infof("已清理 %d 条过期日志记录", rowsAffected)
+	if totalRowsAffected > 0 {
+		logrus.Infof("已清理 %d 条过期日志记录", totalRowsAffected)
 	}
 
 	return nil
 }
 
-// 批量插入日志记录
-func (r *Repository) BatchInsertLogs(logs []NginxLogRecord) error {
+// 为特定网站批量插入日志记录
+func (r *Repository) BatchInsertLogsForWebsite(websiteID string, logs []NginxLogRecord) error {
 	tx, err := r.db.Begin()
 	if err != nil {
 		return err
@@ -122,23 +131,26 @@ func (r *Repository) BatchInsertLogs(logs []NginxLogRecord) error {
 	}()
 
 	// 准备批量插入语句
-	stmtNginx, err := tx.Prepare(`
-        INSERT INTO nginx_logs (
-		ip, pageview_flag, timestamp, method, path, 
-		status_code, bytes_sent, referer, user_agent)
+	nginxTable := fmt.Sprintf("%s_nginx_logs", websiteID)
+	recentTable := fmt.Sprintf("%s_recent_logs", websiteID)
+
+	stmtNginx, err := tx.Prepare(fmt.Sprintf(`
+        INSERT INTO "%s" (
+        ip, pageview_flag, timestamp, method, path, 
+        status_code, bytes_sent, referer, user_agent)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `)
+    `, nginxTable))
 	if err != nil {
 		return err
 	}
 	defer stmtNginx.Close()
 
-	stmtRecent, err := tx.Prepare(`
-        INSERT INTO recent_logs (
-		ip, pageview_flag, timestamp, method, path, 
-		status_code, bytes_sent, referer, user_agent)
+	stmtRecent, err := tx.Prepare(fmt.Sprintf(`
+        INSERT INTO "%s" (
+        ip, pageview_flag, timestamp, method, path, 
+        status_code, bytes_sent, referer, user_agent)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `)
+    `, recentTable))
 	if err != nil {
 		return err
 	}
@@ -176,43 +188,29 @@ func (r *Repository) BatchInsertLogs(logs []NginxLogRecord) error {
 	return tx.Commit()
 }
 
-// 创建表
 func (r *Repository) createTables() error {
-	// 实现实际的表创建逻辑
-	_, err := r.db.Exec(`
-		-- 原始日志表
-		CREATE TABLE IF NOT EXISTS nginx_logs (
-			id INTEGER PRIMARY KEY AUTOINCREMENT,
-			ip TEXT NOT NULL,
-			pageview_flag INTEGER NOT NULL DEFAULT 0,
-			timestamp DATETIME NOT NULL,
-			method TEXT NOT NULL,
-			path TEXT NOT NULL,
-			status_code INTEGER NOT NULL,
-			bytes_sent INTEGER NOT NULL,
-			referer TEXT NOT NULL,
-			user_agent TEXT NOT NULL
-		);
-		
-		-- 最新1小时数据表
-		CREATE TABLE IF NOT EXISTS recent_logs (
-			id INTEGER PRIMARY KEY AUTOINCREMENT,
-			ip TEXT NOT NULL,
-			pageview_flag INTEGER NOT NULL DEFAULT 0,
-			timestamp DATETIME NOT NULL,
-			method TEXT NOT NULL,
-			path TEXT NOT NULL,
-			status_code INTEGER NOT NULL,
-			bytes_sent INTEGER NOT NULL,
-			referer TEXT NOT NULL,
-			user_agent TEXT NOT NULL
-		);
-	
-		-- 创建索引
-		CREATE INDEX IF NOT EXISTS idx_nginx_logs_timestamp ON nginx_logs(timestamp);
-		CREATE INDEX IF NOT EXISTS idx_nginx_logs_path ON nginx_logs(path);
-		CREATE INDEX IF NOT EXISTS idx_nginx_logs_ip ON nginx_logs(ip);
-		`)
-
-	return err
+	common := `id INTEGER PRIMARY KEY AUTOINCREMENT,
+	ip TEXT NOT NULL,
+	pageview_flag INTEGER NOT NULL DEFAULT 0,
+	timestamp DATETIME NOT NULL,
+	method TEXT NOT NULL,
+	path TEXT NOT NULL,
+	status_code INTEGER NOT NULL,
+	bytes_sent INTEGER NOT NULL,
+	referer TEXT NOT NULL,
+	user_agent TEXT NOT NULL`
+	for _, id := range util.GetAllWebsiteIDs() {
+		q := fmt.Sprintf(
+			`CREATE TABLE IF NOT EXISTS "%s_nginx_logs" (%s);
+			 CREATE TABLE IF NOT EXISTS "%s_recent_logs" (%s);
+			 CREATE INDEX IF NOT EXISTS idx_%s_nginx_logs_timestamp ON "%s_nginx_logs"(timestamp);
+			 CREATE INDEX IF NOT EXISTS idx_%s_nginx_logs_path ON "%s_nginx_logs"(path);
+			 CREATE INDEX IF NOT EXISTS idx_%s_nginx_logs_ip ON "%s_nginx_logs"(ip);`,
+			id, common, id, common, id, id, id, id, id, id,
+		)
+		if _, err := r.db.Exec(q); err != nil {
+			return err
+		}
+	}
+	return nil
 }
