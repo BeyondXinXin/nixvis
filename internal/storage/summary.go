@@ -6,7 +6,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/beyondxinxin/nixvis/internal/util"
@@ -35,8 +34,7 @@ type DailyStats struct {
 
 // 存储在文件中的完整统计数据
 type StatsData struct {
-	Days        map[string]DailyStats `json:"days"` // 键为日期(2006-01-02)
-	LastUpdated time.Time             `json:"last_updated"`
+	Days map[string]DailyStats `json:"days"` // 键为日期(2006-01-02)
 }
 
 // TimeRange 表示统计的时间范围
@@ -46,51 +44,56 @@ type TimeRange struct {
 }
 
 type Summary struct {
-	repo         *Repository
-	currentHours map[string]*HourlyStats // 各网站当前小时的实时数据，以网站ID为键
-	dataFileDir  string                  // 统计数据文件所在目录
-	mutex        sync.RWMutex
+	repo        *Repository
+	recentDate  map[string][]HourlyStats // 各网站最新日志的统计数据
+	dataFileDir string                   // 统计数据文件所在目录
 }
 
 // NewSummary 创建一个新的 Summary 实例
 func NewSummary(userRepoPtr *Repository) *Summary {
 	return &Summary{
-		repo:         userRepoPtr,
-		currentHours: make(map[string]*HourlyStats),
-		dataFileDir:  "./data",
+		repo:        userRepoPtr,
+		recentDate:  make(map[string][]HourlyStats),
+		dataFileDir: "./data",
 	}
 }
 
-// UpdateStats 更新所有网站当前小时的统计数据
+// UpdateStats 更新所有网站的统计数据并保存到文件
 func (s *Summary) UpdateStats() error {
-	// 获取所有网站ID
 	websiteIDs := util.GetAllWebsiteIDs()
 	now := time.Now()
+	prevHour := now.Add(-1 * time.Hour)
 
 	for _, id := range websiteIDs {
-		website, ok := util.GetWebsiteByID(id)
-		if !ok {
-			logrus.Warnf("找不到ID为 %s 的网站配置", id)
-			continue
+		website, _ := util.GetWebsiteByID(id)
+		statsData, err := s.loadStatsDataFromFile(id)
+
+		// 如果文件不存在，创建初始统计数据
+		if os.IsNotExist(err) || statsData == nil || len(statsData.Days) == 0 {
+			s.createInitialStatsDataForWebsite(id)
+			statsData, err = s.loadStatsDataFromFile(id)
+			if err != nil {
+				logrus.Warnf("%s (%s) 创建网站的统计数据失败: %v", website.Name, id, err)
+			}
 		}
 
-		// 获取当前网站当前小时的统计数据
-		stats, err := s.getHourlyStatsForWebsite(id, now)
-		if err != nil {
-			logrus.Errorf("获取网站 %s (%s) 的统计数据失败: %v", website.Name, id, err)
-			continue
+		//更新上个小时的数据
+		prevDayStr := prevHour.Format("2006-01-02")
+		prevDayStats := createOrGetDailyStats(prevDayStr, statsData.Days)
+		prevDayStats.Hourly[prevHour.Hour()] = s.getHourlyStatsForWebsite(id, prevHour)
+		prevDayStats.Total = calculateDailyTotal(prevDayStats.Hourly)
+		statsData.Days[prevDayStr] = prevDayStats
+
+		// 更新今天的数据
+		todayStr := now.Format("2006-01-02")
+		todayStats := createOrGetDailyStats(todayStr, statsData.Days)
+		todayStats.Hourly[now.Hour()] = s.getHourlyStatsForWebsite(id, now)
+		todayStats.Total = calculateDailyTotal(todayStats.Hourly)
+		statsData.Days[todayStr] = todayStats
+
+		if err := s.saveStatsDataToFile(id, statsData); err != nil {
+			logrus.Warnf("保存网站 %s (%s) 的统计数据失败: %v", website.Name, id, err)
 		}
-
-		// 更新当前小时统计
-		s.mutex.Lock()
-		s.currentHours[id] = &HourlyStats{Hour: now.Hour(), Stats: stats}
-		s.mutex.Unlock()
-
-		logrus.Infof("%s (%s) 当前小时统计数据: PV=%d, UV=%d, Traffic=%d",
-			website.Name, id, stats.PV, stats.UV, stats.Traffic)
-
-		// 更新统计数据文件
-		s.GetStatsDataForWebsite(id)
 	}
 
 	return nil
@@ -101,49 +104,16 @@ func (s *Summary) getStatsFilePath(websiteID string) string {
 	return filepath.Join(s.dataFileDir, fmt.Sprintf("%s_stats_data.json", websiteID))
 }
 
-// getStatsDataForWebsite 获取指定网站的统计数据，并在必要时保存到文件
+// GetStatsDataForWebsite 获取指定网站的统计数据
 func (s *Summary) GetStatsDataForWebsite(websiteID string) (*StatsData, error) {
-	// 加载或创建统计数据
 	statsData, err := s.loadStatsDataFromFile(websiteID)
-	if os.IsNotExist(err) || len(statsData.Days) == 0 {
-		statsData, err = s.createInitialStatsDataForWebsite(websiteID)
-		if err != nil {
-			return nil, fmt.Errorf("创建网站 %s 的初始统计数据失败: %v", websiteID, err)
+	if err != nil {
+		if os.IsNotExist(err) { // 如果文件不存在，返回空的统计数据结构
+			return &StatsData{
+				Days: make(map[string]DailyStats),
+			}, nil
 		}
-	} else if err != nil {
 		return nil, fmt.Errorf("加载网站 %s 的统计数据失败: %v", websiteID, err)
-	}
-
-	// 获取当前小时的数据
-	s.mutex.RLock()
-	currentHour, hasCurrentHour := s.currentHours[websiteID]
-	s.mutex.RUnlock()
-
-	if !hasCurrentHour {
-		return statsData, nil // 还没有当前小时的数据，直接返回
-	}
-
-	// 更新今天的数据
-	now := time.Now()
-	today := now.Format("2006-01-02")
-	dailyStats := createOrgetDailyStats(today, statsData.Days)
-	dailyStats.Hourly[currentHour.Hour] = *currentHour
-	dailyStats.Total = calculateDailyTotal(dailyStats.Hourly)
-	statsData.Days[today] = dailyStats
-
-	// 在必要时保存到文件
-	if now.After(statsData.LastUpdated) {
-		nextHour := now.Add(time.Hour).Truncate(time.Hour)
-		statsData.LastUpdated = nextHour
-
-		if err := s.saveStatsDataToFile(websiteID, statsData); err != nil {
-			website, _ := util.GetWebsiteByID(websiteID)
-			name := websiteID
-			if website.Name != "" {
-				name = website.Name
-			}
-			logrus.Warnf("保存网站 %s (%s) 的统计数据失败: %v", name, websiteID, err)
-		}
 	}
 
 	return statsData, nil
@@ -152,8 +122,7 @@ func (s *Summary) GetStatsDataForWebsite(websiteID string) (*StatsData, error) {
 // loadStatsDataFromFile 从文件加载特定网站的统计数据
 func (s *Summary) loadStatsDataFromFile(websiteID string) (*StatsData, error) {
 	statsData := &StatsData{
-		Days:        make(map[string]DailyStats),
-		LastUpdated: time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC),
+		Days: make(map[string]DailyStats),
 	}
 
 	filePath := s.getStatsFilePath(websiteID)
@@ -187,8 +156,7 @@ func (s *Summary) createInitialStatsDataForWebsite(websiteID string) (*StatsData
 
 	// 初始化统计数据结构
 	statsData := &StatsData{
-		Days:        make(map[string]DailyStats),
-		LastUpdated: time.Now(),
+		Days: make(map[string]DailyStats),
 	}
 
 	// 获取历史数据的时间范围 - 默认获取最近30天的数据
@@ -203,11 +171,8 @@ func (s *Summary) createInitialStatsDataForWebsite(websiteID string) (*StatsData
 		}
 
 		for hour := 0; hour < 24; hour++ { // 处理每个小时的数据
-			stats, _ := s.getHourlyStatsForWebsiteWithSource(websiteID, day, hour, "nginx")
-			dailyStats.Hourly[hour] = HourlyStats{
-				Hour:  hour,
-				Stats: stats,
-			}
+			hourTime := time.Date(day.Year(), day.Month(), day.Day(), hour, 0, 0, 0, day.Location())
+			dailyStats.Hourly[hour] = s.getHourlyStatsForWebsite(websiteID, hourTime)
 		}
 		dailyStats.Total = calculateDailyTotal(dailyStats.Hourly)
 
@@ -247,29 +212,30 @@ func (s *Summary) saveStatsDataToFile(websiteID string, statsData *StatsData) er
 	return nil
 }
 
-// getHourlyStatsForWebsite 查询指定网站某小时的统计数据
-func (s *Summary) getHourlyStatsForWebsite(websiteID string, dayTime time.Time) (StatsPoint, error) {
-	return s.getHourlyStatsForWebsiteWithSource(websiteID, dayTime, dayTime.Hour(), "recent")
-}
-
-// getHourlyStatsForWebsiteWithSource 查询指定网站某小时的统计数据，指定数据源
-func (s *Summary) getHourlyStatsForWebsiteWithSource(
-	websiteID string, dayTime time.Time, hour int, source string) (StatsPoint, error) {
+// getHourlyStatsForWebsite 查询指定网站某小时的统计数据，指定数据源
+func (s *Summary) getHourlyStatsForWebsite(websiteID string, dayTime time.Time) HourlyStats {
 
 	startOfHour := time.Date(
 		dayTime.Year(), dayTime.Month(), dayTime.Day(),
-		hour, 0, 0, 0, dayTime.Location())
+		dayTime.Hour(), 0, 0, 0, dayTime.Location())
 
 	tr := &TimeRange{
 		Start: startOfHour,
 		End:   startOfHour.Add(time.Hour),
 	}
 
-	return s.statsByTimeRangeForWebsite(websiteID, tr, source)
+	currentStats, _ := s.statsByTimeRangeForWebsite(websiteID, tr)
+
+	hourlyStats := HourlyStats{
+		Hour:  dayTime.Hour(),
+		Stats: currentStats,
+	}
+
+	return hourlyStats
 }
 
 // statsByTimeRangeForWebsite 根据给定的时间范围查询特定网站的统计数据
-func (s *Summary) statsByTimeRangeForWebsite(websiteID string, tr *TimeRange, source string) (StatsPoint, error) {
+func (s *Summary) statsByTimeRangeForWebsite(websiteID string, tr *TimeRange) (StatsPoint, error) {
 	// 开始事务以确保查询一致性
 	tx, err := s.repo.db.Begin()
 	if err != nil {
@@ -299,12 +265,7 @@ func (s *Summary) statsByTimeRangeForWebsite(websiteID string, tr *TimeRange, so
 	}
 
 	// 确定数据源表
-	var tableName string
-	if source == "nginx" {
-		tableName = fmt.Sprintf("%s_nginx_logs", websiteID)
-	} else {
-		tableName = fmt.Sprintf("%s_recent_logs", websiteID)
-	}
+	tableName := fmt.Sprintf("%s_nginx_logs", websiteID)
 
 	// 构建完整的查询
 	query := fmt.Sprintf(`
@@ -341,8 +302,8 @@ func calculateDailyTotal(hourlyStats []HourlyStats) StatsPoint {
 	return total
 }
 
-// createOrgetDailyStats 获取或创建某一天的统计数据
-func createOrgetDailyStats(date string, existingData map[string]DailyStats) DailyStats {
+// createOrGetDailyStats 获取或创建某一天的统计数据
+func createOrGetDailyStats(date string, existingData map[string]DailyStats) DailyStats {
 	dailyStats, exists := existingData[date]
 	if !exists {
 		// 创建新的24小时数据

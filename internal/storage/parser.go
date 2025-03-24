@@ -258,17 +258,3 @@ func (p *NginxLogParser) parseNginxLogLine(line string) (*NginxLogRecord, error)
 		UserAgent:    matches[9],
 	}, nil
 }
-
-// GetStatsData 获取统计数据（为兼容性保留，实际使用默认网站ID）
-func (s *Summary) GetStatsData() (*StatsData, error) {
-	websiteIDs := util.GetAllWebsiteIDs()
-	if len(websiteIDs) == 0 {
-		return &StatsData{
-			Days:        make(map[string]DailyStats),
-			LastUpdated: time.Now(),
-		}, nil
-	}
-
-	// 使用第一个网站ID
-	return s.GetStatsDataForWebsite(websiteIDs[1])
-}

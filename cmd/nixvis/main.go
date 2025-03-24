@@ -42,7 +42,7 @@ func main() {
 	// 启动定时任务
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	go runMaintenanceScheduler(ctx, logParser, summary, repository)
+	go runMaintenanceScheduler(ctx, logParser, summary)
 
 	// 启动HTTP服务器
 	r := setupCORS(summary) // 配置跨域中间件
@@ -79,13 +79,12 @@ func main() {
 func runMaintenanceScheduler(
 	ctx context.Context,
 	parser *storage.NginxLogParser,
-	summary *storage.Summary,
-	repo *storage.Repository) {
+	summary *storage.Summary) {
 
 	logrus.Info("启动Nginx日志扫描任务")
 
 	// 初始扫描
-	performMaintenance(parser, summary, repo)
+	performMaintenance(parser, summary)
 
 	// 定时扫描 - 每2分钟一次
 	ticker := time.NewTicker(2 * time.Minute)
@@ -94,7 +93,7 @@ func runMaintenanceScheduler(
 	for {
 		select {
 		case <-ticker.C:
-			performMaintenance(parser, summary, repo)
+			performMaintenance(parser, summary)
 		case <-ctx.Done():
 			logrus.Info("停止Nginx日志扫描任务")
 			return
@@ -105,23 +104,17 @@ func runMaintenanceScheduler(
 // 执行维护任务
 func performMaintenance(
 	parser *storage.NginxLogParser,
-	summary *storage.Summary,
-	repo *storage.Repository) {
+	summary *storage.Summary) {
 
 	logrus.Info("开始扫描Nginx日志")
 
-	// 1. 清理过期数据
-	if err := repo.CleanupOldData(); err != nil {
-		logrus.Errorf("清理过期数据失败: %v", err)
-	}
-
-	// 2. 扫描日志
+	// 1. 扫描日志
 	if err := parser.ScanNginxLogs(); err != nil {
 		logrus.Errorf("扫描Nginx日志失败: %v", err)
 		return
 	}
 
-	// 3. 生成统计数据
+	// 2. 生成统计数据
 	if err := summary.UpdateStats(); err != nil {
 		logrus.Errorf("生成统计数据失败: %v", err)
 		return
