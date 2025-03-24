@@ -21,10 +21,16 @@ export function getDaysArray(start, end) {
 export function getStartOfWeek(date) {
     const d = new Date(date);
     const day = d.getDay();
-    const diff = d.getDate() - day + (day === 0 ? -6 : 1); // 调整周日的情况
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1);
     return new Date(d.setDate(diff));
 }
 
+export function getEndOfWeek(date) {
+    const d = new Date(date);
+    const day = d.getDay();
+    const diff = d.getDate() + (day === 0 ? 0 : 7 - day);
+    return new Date(d.setDate(diff));
+}
 
 export function getDateByTimeRange(timeRange) {
     const today = new Date();

@@ -22,9 +22,11 @@ Examples:
     - feat 添加用户注册功能
 
 Key Rules:
-    1. Use concise verbs to start the description.Verbs including but not limited to:feat、fix、style、refactor、docs、perf
+    1. Use concise verbs to start the description.
+       Verbs including but not limited to:feat、fix、style、refactor、docs、perf
     2. Combine strongly related changes under one type (e.g. 架构调整+布局优化=refactor)
     3. Split only when changes have different nature,maximum 3 type lines per commit
-    4. Give me a concise and efficient submission record directly, and there is no need for any explanation
+    4. Give me a concise and efficient submission record directly, 
+       and there is no need for any explanation
 ```
 

@@ -1,4 +1,10 @@
-import { getStartOfWeek, getDaysArray, getDateByTimeRange, formatTraffic } from './utils.js';
+import {
+    getStartOfWeek,
+    getDaysArray,
+    getEndOfWeek,
+    getDateByTimeRange,
+    formatTraffic
+} from './utils.js';
 
 // 用于存储图表实例的模块级变量
 let visitsChart = null;
@@ -44,7 +50,7 @@ export function processStatsData(statsData, timeRange, viewType) {
                 case 'week':
                     // 本周(周一到今天)
                     startDate = getStartOfWeek(new Date());
-                    endDate = new Date();
+                    endDate = getEndOfWeek(new Date());
                     break;
                 case 'last7days':
                     // 最近7天(今天和前6天)
@@ -135,9 +141,9 @@ export function processStatsData(statsData, timeRange, viewType) {
                 endDate = new Date();
                 break;
             case 'week':
-                // 本周(周一到今天)
+                // 本周(周一到周日)
                 startDate = getStartOfWeek(new Date());
-                endDate = new Date();
+                endDate = getEndOfWeek(new Date());
                 break;
             case 'last7days':
                 // 最近7天(今天和前6天)

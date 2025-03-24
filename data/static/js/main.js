@@ -140,7 +140,6 @@ async function loadWebsiteData(websiteId) {
         checkInitialDateRange();
 
         // 直接更新总览数据
-        console.log("直接更新总览数据");
         updateOverallStats(data, range);
 
         // 然后更新图表

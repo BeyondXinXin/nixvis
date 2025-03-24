@@ -72,16 +72,8 @@ func SetupRoutes(router *gin.Engine, summary *storage.Summary) {
 			return
 		}
 
-		// 获取该网站的统计数据
-		statsData, err := summary.GetStatsDataForWebsite(websiteID)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": "获取统计数据失败：" + err.Error(),
-			})
-			return
-		}
-
-		// 返回数据
+		// 获取该网站的统计数据并返回
+		statsData, _ := summary.LoadStatsDataFromFile(websiteID)
 		c.JSON(http.StatusOK, statsData)
 	})
 }
