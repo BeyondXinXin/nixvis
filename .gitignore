@@ -4,3 +4,4 @@ diff.patch
 data/*
 !data/static/
 !data/templates/
+nixvis.tar.gz

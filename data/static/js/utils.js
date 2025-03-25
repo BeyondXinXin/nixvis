@@ -82,21 +82,6 @@ export function formatTraffic(traffic) {
     }
 }
 
-// 设置加载状态相关函数
-export function setLoadingState(isLoading) {
-    const statsElements = [
-        document.getElementById('total-uv'),
-        document.getElementById('total-pv'),
-        document.getElementById('total-traffic')
-    ];
-
-    statsElements.forEach(element => {
-        if (element) {
-            element.textContent = isLoading ? '加载中...' : '-';
-        }
-    });
-}
-
 // 重置统计信息
 export function resetStatistics() {
     const statsElements = [

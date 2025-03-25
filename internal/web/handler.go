@@ -1,6 +1,7 @@
 package web
 
 import (
+	"fmt"
 	"html/template"
 	"net/http"
 	"path/filepath"
@@ -14,7 +15,7 @@ import (
 )
 
 // 初始化Web路由
-func SetupRoutes(router *gin.Engine, summary *storage.Summary) {
+func SetupRoutes(router *gin.Engine, stats *storage.StatsManager) {
 	// 初始化模板引擎
 	loadTemplates(router)
 
@@ -54,27 +55,30 @@ func SetupRoutes(router *gin.Engine, summary *storage.Summary) {
 	router.GET("/api/stats-data", func(c *gin.Context) {
 		// 获取网站ID参数
 		websiteID := c.Query("id")
-
-		// 检查ID是否提供
-		if websiteID == "" {
+		timeRange := c.Query("timeRange")
+		viewType := c.Query("viewType")
+		if websiteID == "" || timeRange == "" || viewType == "" {
+			errStr := fmt.Sprintf("参数错误: id[%s] timeRange[%s] viewType[%s]",
+				websiteID, timeRange, viewType)
+			logrus.Error(errStr)
 			c.JSON(http.StatusBadRequest, gin.H{
-				"error": "必须指定网站ID参数",
-			})
-			return
-		}
-
-		// 检查网站是否存在
-		_, ok := util.GetWebsiteByID(websiteID)
-		if !ok {
-			c.JSON(http.StatusNotFound, gin.H{
-				"error": "找不到指定ID的网站",
+				"error": errStr,
 			})
 			return
 		}
 
 		// 获取该网站的统计数据并返回
-		statsData, _ := summary.LoadStatsDataFromFile(websiteID)
-		c.JSON(http.StatusOK, statsData)
+		statsResult, err := stats.StatsByWebIDAndTimeRange(websiteID, timeRange, viewType)
+		if err != nil {
+			errStr := fmt.Sprintf("获取统计数据失败: %v", err)
+			logrus.Error(errStr)
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": errStr,
+			})
+			return
+		}
+
+		c.JSON(http.StatusOK, statsResult)
 	})
 }
 
