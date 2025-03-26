@@ -12,24 +12,58 @@ export async function fetchWebsites() {
     }
 }
 
-export async function fetchStatsData(websiteId, timeRange, viewType) {
+// 查询接口
+async function fetchStats(type, params = {}) {
     try {
-        // 创建URL参数对象
-        const params = new URLSearchParams();
-        params.append('id', websiteId);
-        params.append('timeRange', timeRange);
-        params.append('viewType', viewType);
+        const queryParams = new URLSearchParams();
 
-        const response = await fetch(`/api/stats-data?${params.toString()}`);
+        // 添加所有参数到查询字符串
+        Object.entries(params).forEach(([key, value]) => {
+            if (value !== undefined && value !== null) {
+                queryParams.append(key, value);
+            }
+        });
+
+        const url = `/api/stats/${type}?${queryParams.toString()}`;
+        const response = await fetch(url);
 
         if (!response.ok) {
-            throw new Error('网络响应不正常');
+            throw new Error(`请求失败，状态码: ${response.status}`);
         }
-        const statsData = await response.json();
 
-        return statsData;
+        return await response.json();
     } catch (error) {
-        console.error('获取统计数据失败:', error);
+        console.error(`获取${type}统计数据失败:`, error);
         throw error;
     }
 }
+
+// 以下是针对不同统计类型的专用函数
+export async function fetchTimeSeriesStats(websiteId, timeRange, viewType) {
+    return fetchStats('timeseries', { id: websiteId, timeRange, viewType });
+}
+
+export async function fetchOverallStats(websiteId, timeRange) {
+    return fetchStats('overall', { id: websiteId, timeRange });
+}
+
+export async function fetchUrlStats(websiteId, timeRange, limit = 10) {
+    return fetchStats('url', { id: websiteId, timeRange, limit });
+}
+
+export async function fetchRefererStats(websiteId, timeRange, limit = 10) {
+    return fetchStats('referer', { id: websiteId, timeRange, limit });
+}
+
+export async function fetchBrowserStats(websiteId, timeRange) {
+    return fetchStats('browser', { id: websiteId, timeRange });
+}
+
+export async function fetchOSStats(websiteId, timeRange) {
+    return fetchStats('os', { id: websiteId, timeRange });
+}
+
+export async function fetchDeviceStats(websiteId, timeRange) {
+    return fetchStats('device', { id: websiteId, timeRange });
+}
+

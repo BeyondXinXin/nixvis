@@ -19,11 +19,13 @@ type NginxLogRecord struct {
 	PageviewFlag int       `json:"pageview_flag"`
 	Timestamp    time.Time `json:"timestamp"`
 	Method       string    `json:"method"`
-	Path         string    `json:"path"`
+	Url          string    `json:"url"`
 	Status       int       `json:"status"`
 	BytesSent    int       `json:"bytes_sent"`
 	Referer      string    `json:"referer"`
-	UserAgent    string    `json:"user_agent"`
+	UserBrowser  string    `json:"user_browser"`
+	UserOs       string    `json:"user_os"`
+	UserDevice   string    `json:"user_device"`
 }
 
 type Repository struct {
@@ -46,7 +48,7 @@ func NewRepository() (*Repository, error) {
 	if _, err := db.Exec(`
         PRAGMA journal_mode=WAL;
         PRAGMA synchronous=NORMAL;
-        PRAGMA cache_size=5000;
+        PRAGMA cache_size=32768;
         PRAGMA temp_store=MEMORY;`); err != nil {
 		db.Close()
 		return nil, err
@@ -87,9 +89,10 @@ func (r *Repository) BatchInsertLogsForWebsite(websiteID string, logs []NginxLog
 
 	stmtNginx, err := tx.Prepare(fmt.Sprintf(`
         INSERT INTO "%s" (
-        ip, pageview_flag, timestamp, method, path, 
-        status_code, bytes_sent, referer, user_agent)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ip, pageview_flag, timestamp, method, url, 
+        status_code, bytes_sent, referer, 
+        user_browser, user_os, user_device)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, nginxTable))
 	if err != nil {
 		return err
@@ -100,8 +103,8 @@ func (r *Repository) BatchInsertLogsForWebsite(websiteID string, logs []NginxLog
 	for _, log := range logs {
 		// 原始日志表
 		_, err = stmtNginx.Exec(
-			log.IP, log.PageviewFlag, log.Timestamp, log.Method, log.Path,
-			log.Status, log.BytesSent, log.Referer, log.UserAgent,
+			log.IP, log.PageviewFlag, log.Timestamp.Unix(), log.Method, log.Url,
+			log.Status, log.BytesSent, log.Referer, log.UserBrowser, log.UserOs, log.UserDevice,
 		)
 		if err != nil {
 			return err
@@ -115,26 +118,30 @@ func (r *Repository) createTables() error {
 	common := `id INTEGER PRIMARY KEY AUTOINCREMENT,
 	ip TEXT NOT NULL,
 	pageview_flag INTEGER NOT NULL DEFAULT 0,
-	timestamp DATETIME NOT NULL,
+	timestamp INTEGER NOT NULL,
 	method TEXT NOT NULL,
-	path TEXT NOT NULL,
+	url TEXT NOT NULL,
 	status_code INTEGER NOT NULL,
 	bytes_sent INTEGER NOT NULL,
 	referer TEXT NOT NULL,
-	user_agent TEXT NOT NULL`
+	user_browser TEXT NOT NULL,
+	user_os TEXT NOT NULL,
+	user_device TEXT NOT NULL`
 	for _, id := range util.GetAllWebsiteIDs() {
 		q := fmt.Sprintf(
 			`CREATE TABLE IF NOT EXISTS "%[1]s_nginx_logs" (%[2]s);
              
              -- 单列索引
-             CREATE INDEX IF NOT EXISTS idx_%[1]s_nginx_logs_timestamp ON "%[1]s_nginx_logs"(timestamp);
-             CREATE INDEX IF NOT EXISTS idx_%[1]s_nginx_logs_path ON "%[1]s_nginx_logs"(path);
-             CREATE INDEX IF NOT EXISTS idx_%[1]s_nginx_logs_ip ON "%[1]s_nginx_logs"(ip);
+             CREATE INDEX IF NOT EXISTS idx_%[1]s_timestamp ON "%[1]s_nginx_logs"(timestamp);
+             CREATE INDEX IF NOT EXISTS idx_%[1]s_url ON "%[1]s_nginx_logs"(url);
+             CREATE INDEX IF NOT EXISTS idx_%[1]s_ip ON "%[1]s_nginx_logs"(ip);
+             CREATE INDEX IF NOT EXISTS idx_%[1]s_referer ON "%[1]s_nginx_logs"(referer);
+             CREATE INDEX IF NOT EXISTS idx_%[1]s_user_browser ON "%[1]s_nginx_logs"(user_browser);
+             CREATE INDEX IF NOT EXISTS idx_%[1]s_user_os ON "%[1]s_nginx_logs"(user_os);
+             CREATE INDEX IF NOT EXISTS idx_%[1]s_user_device ON "%[1]s_nginx_logs"(user_device);
              
              -- 复合索引
-             CREATE INDEX IF NOT EXISTS idx_%[1]s_nginx_logs_ts_path ON "%[1]s_nginx_logs"(timestamp, path);
-             CREATE INDEX IF NOT EXISTS idx_%[1]s_nginx_logs_ts_pv_flag ON "%[1]s_nginx_logs"(timestamp, pageview_flag);
-             CREATE INDEX IF NOT EXISTS idx_%[1]s_nginx_logs_path_pv_flag ON "%[1]s_nginx_logs"(path, pageview_flag);`,
+             CREATE INDEX IF NOT EXISTS idx_%[1]s_pv_ts_ip ON "%[1]s_nginx_logs" (pageview_flag, timestamp, ip);`,
 			id, common,
 		)
 		if _, err := r.db.Exec(q); err != nil {

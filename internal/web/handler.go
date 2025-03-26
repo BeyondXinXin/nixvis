@@ -15,7 +15,10 @@ import (
 )
 
 // 初始化Web路由
-func SetupRoutes(router *gin.Engine, stats *storage.StatsManager) {
+func SetupRoutes(
+	router *gin.Engine,
+	statsFactory *storage.StatsFactory) {
+
 	// 初始化模板引擎
 	loadTemplates(router)
 
@@ -51,35 +54,72 @@ func SetupRoutes(router *gin.Engine, stats *storage.StatsManager) {
 		})
 	})
 
-	// 获取网站统计数据
-	router.GET("/api/stats-data", func(c *gin.Context) {
-		// 获取网站ID参数
+	// 查询接口
+	router.GET("/api/stats/:type", func(c *gin.Context) {
+		statsType := c.Param("type")
 		websiteID := c.Query("id")
 		timeRange := c.Query("timeRange")
-		viewType := c.Query("viewType")
-		if websiteID == "" || timeRange == "" || viewType == "" {
-			errStr := fmt.Sprintf("参数错误: id[%s] timeRange[%s] viewType[%s]",
-				websiteID, timeRange, viewType)
-			logrus.Error(errStr)
+
+		// 构建查询对象
+		query := storage.StatsQuery{
+			WebsiteID:  websiteID,
+			TimeRange:  timeRange,
+			ViewType:   c.DefaultQuery("viewType", ""),
+			ExtraParam: make(map[string]interface{}),
+		}
+
+		// 检查必要参数
+		if websiteID == "" || timeRange == "" {
 			c.JSON(http.StatusBadRequest, gin.H{
-				"error": errStr,
+				"error": "缺少必要参数: id 和 timeRange",
 			})
 			return
 		}
 
-		// 获取该网站的统计数据并返回
-		statsResult, err := stats.StatsByWebIDAndTimeRange(websiteID, timeRange, viewType)
+		// 根据统计类型设置额外参数
+		switch statsType {
+		case "url":
+		case "referer":
+		case "browser":
+		case "os":
+		case "device":
+			if limitStr := c.Query("limit"); limitStr != "" {
+				limit := 10 // 默认值
+				if _, err := fmt.Sscanf(limitStr, "%d", &limit); err == nil {
+					query.ExtraParam["limit"] = limit
+				}
+			} else {
+				query.ExtraParam["limit"] = 10
+			}
+		case "timeseries":
+			if query.ViewType == "" {
+				c.JSON(http.StatusBadRequest, gin.H{
+					"error": "时间序列查询需要 viewType 参数",
+				})
+				return
+			}
+		case "overall":
+			// 总体统计不需要额外参数
+		default:
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": fmt.Sprintf("不支持的统计类型: %s", statsType),
+			})
+			return
+		}
+
+		// 执行查询
+		result, err := statsFactory.QueryStats(statsType, query)
 		if err != nil {
-			errStr := fmt.Sprintf("获取统计数据失败: %v", err)
-			logrus.Error(errStr)
+			logrus.WithError(err).Errorf("查询统计数据[%s]失败", statsType)
 			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": errStr,
+				"error": fmt.Sprintf("查询失败: %v", err),
 			})
 			return
 		}
 
-		c.JSON(http.StatusOK, statsResult)
+		c.JSON(http.StatusOK, result)
 	})
+
 }
 
 // 加载模板文件

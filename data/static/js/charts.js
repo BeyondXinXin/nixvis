@@ -1,8 +1,4 @@
 import {
-    getStartOfWeek,
-    getDaysArray,
-    getEndOfWeek,
-    getDateByTimeRange,
     formatTraffic
 } from './utils.js';
 
@@ -38,28 +34,24 @@ export function displayErrorMessage(message, chartCanvas) {
     }
 }
 
-
-
 // 更新整体统计数据
 export function updateOverallStats(overall) {
     // 格式化流量显示
-    const trafficDisplay = formatTraffic(overall.traffic);
+    const trafficDisplay = formatTraffic(overall.overall.traffic);
 
     // 更新DOM
-    document.getElementById('total-uv').textContent = overall.uv.toLocaleString();
-    document.getElementById('total-pv').textContent = overall.pv.toLocaleString();
+    document.getElementById('total-uv').textContent = overall.overall.uv.toLocaleString();
+    document.getElementById('total-pv').textContent = overall.overall.pv.toLocaleString();
     document.getElementById('total-traffic').textContent = trafficDisplay;
 }
 
 // 渲染图表
-export function renderChart(ctx, statsData, range, currentView) {
+export function renderChart(ctx, statsData) {
     // 清除错误消息
     const errorMsg = document.querySelector('.chart-error-message');
     if (errorMsg) {
         errorMsg.remove();
     }
-
-
 
     const pvMinusUv = statsData.pvMinusUv;
 
@@ -185,7 +177,6 @@ export function renderChart(ctx, statsData, range, currentView) {
     visitsChart = new Chart(ctx, chartConfig);
 }
 
-
 // 更新视图切换按钮状态
 export function updateViewToggleButtons(range, currentView, viewToggleBtns) {
     // 如果选择了"今天"，强制使用"按小时"视图并禁用"按天"按钮
@@ -210,4 +201,65 @@ export function updateViewToggleButtons(range, currentView, viewToggleBtns) {
         dailyBtn.disabled = false;
     }
     return currentView; // 返回不变的视图模式
+}
+
+
+// 更新引荐来源排名表格
+export function updaterefererRankingTable(data) {
+    updateClientTable('referer-ranking-table', data.url, data.url_overall);
+}
+
+// 更新浏览器统计表格
+export function updateBrowserTable(data) {
+    updateClientTable('browser-ranking-table', data.url, data.url_overall);
+}
+
+// 更新操作系统统计表格
+export function updateOsTable(data) {
+    updateClientTable('os-ranking-table', data.url, data.url_overall);
+}
+
+// 更新设备统计表格
+export function updateDeviceTable(data) {
+    updateClientTable('device-ranking-table', data.url, data.url_overall);
+}
+
+// 更新URL排名表格
+export function updateUrlRankingTable(urlStats) {
+    updateClientTable('url-ranking-table', urlStats.url, urlStats.url_overall, true);
+}
+
+
+// 通用客户端表格更新函数 - 简化版本
+function updateClientTable(tableId, itemLabs, itemOverall, showPv = false) {
+    const tableBody = document.querySelector(`#${tableId} tbody`);
+
+    // 清空表格内容
+    tableBody.innerHTML = '';
+
+    if (!itemLabs || !itemOverall || itemLabs.length === 0) {
+        const row = document.createElement('tr');
+        row.classList.add('loading-row');
+        row.innerHTML = '<td colspan="2">暂无数据</td>';
+        tableBody.appendChild(row);
+        return;
+    }
+
+    // 填充表格数据
+    itemLabs.forEach((itemlab, index) => {
+        const stats = itemOverall[index];
+        const row = document.createElement('tr');
+
+        if (showPv) {
+            row.innerHTML = `
+                <td class="item-path" title="${itemlab}">${itemlab}</td>
+                <td>${stats.uv.toLocaleString()}</td>
+                <td>${stats.pv.toLocaleString()}</td>`;
+        } else {
+            row.innerHTML = `
+                <td class="item-path" title="${itemlab}">${itemlab}</td>
+                <td>${stats.uv.toLocaleString()}</td>`;
+        }
+        tableBody.appendChild(row);
+    });
 }

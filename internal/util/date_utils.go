@@ -5,10 +5,36 @@ import (
 	"time"
 )
 
-// GetTimeRangeByType 根据时间范围类型和视图类型直接返回时间点数组和标签数组
+// TimePeriod 根据时间范围字符串计算开始和结束时间
+// TimePeriod 可以是 "today", "week", "last7days", "month", "last30days"
+func TimePeriod(timeRange string) (time.Time, time.Time, error) {
+
+	now := time.Now()
+	endTime := setTime(now, 23, 59, 59) // 设置为当天最后一秒
+
+	var startTime time.Time
+	switch timeRange {
+	case "today":
+		startTime = setTime(now, 0, 0, 0)
+	case "week":
+		startTime, endTime = weekBounds(now)
+	case "last7days":
+		startTime = setTime(now.AddDate(0, 0, -6), 0, 0, 0)
+	case "month":
+		startTime, endTime = monthBounds(now)
+	case "last30days":
+		startTime = setTime(now.AddDate(0, 0, -29), 0, 0, 0)
+	default:
+		startTime = setTime(now, 0, 0, 0)
+	}
+
+	return startTime, endTime, nil
+}
+
+// TimePoints 根据时间范围类型和视图类型直接返回时间点数组和标签数组
 // timeRangeType 可以是 "today", "week", "last7days", "month", "last30days"
 // viewType 可以是 "hourly" 或 "daily"
-func GetTimeRangeByType(
+func TimePointsAndLabels(
 	timeRangeType string, viewType string) ([]time.Time, []string) {
 
 	now := time.Now()
@@ -29,12 +55,12 @@ func GetTimeRangeByType(
 	var startDay, endDay time.Time
 	switch timeRangeType {
 	case "week":
-		startDay, endDay = getWeekBounds(now)
+		startDay, endDay = weekBounds(now)
 	case "last7days":
 		startDay = setTime(now.AddDate(0, 0, -6), 0, 0, 0)
 		endDay = setTime(now, 23, 0, 0)
 	case "month":
-		startDay, endDay = getMonthBounds(now)
+		startDay, endDay = monthBounds(now)
 	case "last30days":
 		startDay = setTime(now.AddDate(0, 0, -29), 0, 0, 0)
 		endDay = setTime(now, 23, 0, 0)
@@ -75,8 +101,8 @@ func FormatDateWithWeekday(date time.Time, includeWeekday bool) string {
 	return monthDay
 }
 
-// getWeekBounds 返回包含指定日期的那一周的开始和结束时间
-func getWeekBounds(t time.Time) (time.Time, time.Time) {
+// weekBounds 返回包含指定日期的那一周的开始和结束时间
+func weekBounds(t time.Time) (time.Time, time.Time) {
 	// 获取包含 t 的那一周的周一
 	weekday := t.Weekday()
 	daysToMonday := 0
@@ -95,8 +121,8 @@ func getWeekBounds(t time.Time) (time.Time, time.Time) {
 	return weekStart, weekEnd
 }
 
-// getMonthBounds 返回指定日期所在月份的第一天和最后一天
-func getMonthBounds(t time.Time) (time.Time, time.Time) {
+// monthBounds 返回指定日期所在月份的第一天和最后一天
+func monthBounds(t time.Time) (time.Time, time.Time) {
 	firstDay := time.Date(t.Year(), t.Month(), 1, 0, 0, 0, 0, t.Location())
 	nextMonth := firstDay.AddDate(0, 1, 0)
 	lastDay := nextMonth.AddDate(0, 0, -1)

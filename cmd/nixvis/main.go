@@ -34,46 +34,16 @@ func main() {
 	if err := repository.Init(); err != nil {
 		logrus.WithField("error", err).Error("Failed to create tables")
 		return
+
 	}
 	logParser := storage.NewLogParser(repository)
-	stats := storage.NewStatsManager(repository)
-	urlStatsMgr := storage.NewURLStatsManager(repository)
+	statsFactory := storage.NewStatsFactory(repository)
 
 	logrus.Info("****** 初始扫描 ******")
-	executePeriodicTasks(logParser, stats, urlStatsMgr)
-
-	// 测试查询
-	websiteIDs := util.GetAllWebsiteIDs()
-	for _, id := range websiteIDs {
-
-		timeRangeList := []string{"today", "last7days", "last30days"}
-		for _, timeRange := range timeRangeList {
-			queryStart := time.Now()
-
-			// 获取统计数据
-			urlStats, _ := urlStatsMgr.GetTopURLs(id, timeRange, 30)
-
-			// 构建格式化的URL统计信息
-			// var formattedStats []string
-			// for i, stat := range urlStats {
-			// 	formattedStats = append(formattedStats,
-			// 		fmt.Sprintf("\n  [%d] URL: %s, PV: %d, UV: %d, Traffic: %d bytes",
-			// 			i+1, stat.URL, stat.PV, stat.UV, stat.Traffic))
-			// }
-
-			queryDuration := time.Since(queryStart)
-			// 合并打印
-			logrus.WithFields(logrus.Fields{
-				"websiteID": id,
-				"timeRange": timeRange,
-				"count":     len(urlStats),
-				"duration":  queryDuration,
-			}).Infof("")
-		}
-	}
+	executePeriodicTasks(logParser)
 
 	logrus.Info("****** 启动HTTP服务器 ******")
-	r := setupCORS(stats)
+	r := setupCORS(statsFactory)
 	srv := &http.Server{
 		Addr:    cfg.Server.Port,
 		Handler: r,
@@ -90,7 +60,7 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	go runPeriodicTaskScheduler(ctx, logParser, stats, urlStatsMgr)
+	go runPeriodicTaskScheduler(ctx, logParser)
 
 	// 等待程序退出
 	shutdownSignal := make(chan os.Signal, 1)
@@ -115,7 +85,8 @@ func main() {
 }
 
 // setupCORS 配置跨域中间件
-func setupCORS(stats *storage.StatsManager) *gin.Engine {
+func setupCORS(statsFactory *storage.StatsFactory) *gin.Engine {
+
 	gin.DefaultWriter = logrus.StandardLogger().Writer()
 	gin.SetMode(gin.ReleaseMode)
 	r := gin.Default()
@@ -128,17 +99,14 @@ func setupCORS(stats *storage.StatsManager) *gin.Engine {
 	}))
 
 	// 设置Web路由
-	web.SetupRoutes(r, stats)
+	web.SetupRoutes(r, statsFactory)
 
 	return r
 }
 
 // runPeriodicTaskScheduler 运行周期性任务（每5分钟）
 func runPeriodicTaskScheduler(
-	ctx context.Context,
-	parser *storage.LogParser,
-	stats *storage.StatsManager,
-	urlStatsMgr *storage.URLStatsManager) {
+	ctx context.Context, parser *storage.LogParser) {
 
 	// 定时扫描 - 每5分钟一次
 	ticker := time.NewTicker(5 * time.Minute)
@@ -148,7 +116,7 @@ func runPeriodicTaskScheduler(
 		select {
 		case <-ticker.C:
 			logrus.Info("****** 开始执行维护任务 ******")
-			executePeriodicTasks(parser, stats, urlStatsMgr)
+			executePeriodicTasks(parser)
 		case <-ctx.Done():
 			return
 		}
@@ -157,19 +125,10 @@ func runPeriodicTaskScheduler(
 
 // executePeriodicTasks 执行周期性任务
 func executePeriodicTasks(
-	parser *storage.LogParser,
-	stats *storage.StatsManager,
-	urlStatsMgr *storage.URLStatsManager) {
+	parser *storage.LogParser) {
 
 	logrus.Info("开始扫描Nginx日志")
 	parser.ScanNginxLogs()
 	logrus.Info("Nginx日志扫描完成")
 
-	// logrus.Info("2. 开始更新统计数据")
-	// stats.UpdateStats()
-	// logrus.Info("统计数据更新完成")
-
-	// logrus.Info("3. 开始更新URL访问统计数据")
-	// urlStatsMgr.UpdateURLStats()
-	// logrus.Info("URL访问统计数据更新完成")
 }

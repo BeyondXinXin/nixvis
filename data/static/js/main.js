@@ -1,19 +1,35 @@
-import { fetchStatsData } from './api.js';
+import {
+    fetchTimeSeriesStats,
+    fetchOverallStats,
+    fetchUrlStats,
+    fetchRefererStats,
+    fetchBrowserStats,
+    fetchOSStats,
+    fetchDeviceStats,
+} from './api.js';
+
 import {
     renderChart,
     updateViewToggleButtons,
     displayErrorMessage,
-    updateOverallStats
+    updateOverallStats,
+    updateUrlRankingTable,
+    updaterefererRankingTable,
+    updateBrowserTable,
+    updateOsTable,
+    updateDeviceTable,
 } from './charts.js';
-import { initWebsiteSelector } from './sites.js';
+
 import {
-    resetStatistics,
+    initWebsiteSelector,
+} from './sites.js';
+
+import {
     saveUserPreference
 } from './utils.js';
 
 // 模块级变量
 let currentView = 'hourly';
-let statsDataCache = null;
 let ctx = null;
 let websiteSelector = null;
 let dateRange = null;
@@ -105,22 +121,32 @@ async function refreshData() {
     try {
         // 获取统计数据
         const range = dateRange.value;
-        const statsData = await fetchStatsData(currentWebsiteId, range, currentView);
-        statsDataCache = statsData;
 
-        renderChart(ctx, statsDataCache.charts, range, currentView);
+        const [timeSeriesStats, overallData,
+            urlStats, refererStats,
+            browserStats, osStats, deviceStats] =
+            await Promise.all([
+                fetchTimeSeriesStats(currentWebsiteId, range, currentView),
+                fetchOverallStats(currentWebsiteId, range),
+                fetchUrlStats(currentWebsiteId, range, 10),
+                fetchRefererStats(currentWebsiteId, range, 10),
+                fetchBrowserStats(currentWebsiteId, range, 10),
+                fetchOSStats(currentWebsiteId, range, 10),
+                fetchDeviceStats(currentWebsiteId, range, 10)
+            ]);
 
-        setTimeout(() => {
-            updateOverallStats(statsDataCache.overall);
-        }, 50);
+        renderChart(ctx, timeSeriesStats);
+        updateOverallStats(overallData);
+        updateUrlRankingTable(urlStats);
+        updaterefererRankingTable(refererStats);
 
+        updateBrowserTable(browserStats);
+        updateOsTable(osStats);
+        updateDeviceTable(deviceStats);
 
     } catch (error) {
         console.error('加载网站数据失败:', error);
         displayErrorMessage(`无法获取"${websiteSelector.options[websiteSelector.selectedIndex].text}"的统计数据`, chartCanvas);
-        // 重置统计信息
-        resetStatistics();
-
     }
 }
 

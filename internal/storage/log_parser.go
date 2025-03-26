@@ -8,6 +8,7 @@ import (
 	"os"
 	"regexp"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/beyondxinxin/nixvis/internal/util"
@@ -240,6 +241,7 @@ func (p *LogParser) parseNginxLogLine(line string) (*NginxLogRecord, error) {
 	}
 
 	pageviewFlag := 0
+
 	// pv过滤条件：
 	// status = 200
 	// path 中不含 favicon、sitemap、rss、robots.txt
@@ -250,16 +252,73 @@ func (p *LogParser) parseNginxLogLine(line string) (*NginxLogRecord, error) {
 		pageviewFlag = 1
 	}
 
+	browser, os, device := parseUserAgent(matches[9])
+
 	return &NginxLogRecord{
 		ID:           0,
 		IP:           matches[1],
 		PageviewFlag: pageviewFlag,
 		Timestamp:    timestamp,
 		Method:       matches[4],
-		Path:         decodedPath,
+		Url:          decodedPath,
 		Status:       statusCode,
 		BytesSent:    bytesSent,
 		Referer:      referPath,
-		UserAgent:    matches[9],
+		UserBrowser:  browser,
+		UserOs:       os,
+		UserDevice:   device,
 	}, nil
+}
+
+// 解析 User-Agent 字符串，提取浏览器、操作系统和设备信息
+func parseUserAgent(userAgentString string) (browser, os, device string) {
+	// 默认值
+	browser = "其他"
+	os = "其他"
+	device = "桌面设备"
+
+	// 浏览器检测
+	switch {
+	case strings.Contains(userAgentString, "Chrome") &&
+		strings.Contains(userAgentString, "Safari") &&
+		!strings.Contains(userAgentString, "Edg"):
+		browser = "Chrome"
+	case strings.Contains(userAgentString, "Firefox"):
+		browser = "Firefox"
+	case strings.Contains(userAgentString, "Safari") &&
+		!strings.Contains(userAgentString, "Chrome"):
+		browser = "Safari"
+	case strings.Contains(userAgentString, "Edg"):
+		browser = "Edge"
+	case strings.Contains(userAgentString, "MSIE") ||
+		strings.Contains(userAgentString, "Trident"):
+		browser = "Internet Explorer"
+	}
+
+	// 操作系统检测
+	switch {
+	case strings.Contains(userAgentString, "Windows"):
+		os = "Windows"
+	case strings.Contains(userAgentString, "Mac OS"):
+		os = "macOS"
+	case strings.Contains(userAgentString, "iPhone"):
+		os = "iOS"
+	case strings.Contains(userAgentString, "iPad"):
+		os = "iOS"
+	case strings.Contains(userAgentString, "Android"):
+		os = "Android"
+	case strings.Contains(userAgentString, "Linux"):
+		os = "Linux"
+	}
+
+	// 设备类型检测
+	if strings.Contains(userAgentString, "Mobile") ||
+		strings.Contains(userAgentString, "iPhone") {
+		device = "移动设备"
+	} else if strings.Contains(userAgentString, "Tablet") ||
+		strings.Contains(userAgentString, "iPad") {
+		device = "平板设备"
+	}
+
+	return
 }

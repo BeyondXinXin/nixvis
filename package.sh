@@ -1,59 +1,54 @@
-diff --git a/package.sh b/package.sh
-index 02d7b04..e69de29 100644
---- a/package.sh
-+++ b/package.sh
-@@ -1,54 +0,0 @@
--#!/bin/bash
--
--echo "开始构建 NixVis..."
--export CGO_ENABLED=0
--export GOOS=linux
--export GOARCH=amd64
--
--echo "清理旧文件..."
--rm -f nixvis
--rm -f nixvis.tar.gz
--rm -rf release
--
--echo "编译主程序..."
--go build -ldflags="-s -w" -o nixvis ./cmd/nixvis/main.go
--
--if [ $? -eq 0 ]; then
--    echo "构建成功!"
--
--    mkdir -p release
--    cp nixvis release/
--    mkdir -p release/data
--    cp -r data/static release/data/
--    cp -r data/templates release/data/
--    echo '
--{
--    "system": {
--        "logDestination": "file"
--    },
--    "server": {
--        "Port": ":8088"
--    },
--    "websites": [
--        {
--            "name": "web1",
--            "logPath": "web1.log"
--        },
--        {
--            "name": "web2",
--            "logPath": "web2.log"
--        }
--    ]
--}
--' >release/data/config.json
--
--    rm -f nixvis
--    mv release nixvis
--    tar -czf nixvis.tar.gz nixvis/
--    rm -rf nixvis/
--
--    echo "打包完成"
--else
--    echo "打包失败!"
--    exit 1
--fi
+#!/bin/bash
+
+echo "开始构建 NixVis..."
+export CGO_ENABLED=0
+export GOOS=linux
+export GOARCH=amd64
+
+echo "清理旧文件..."
+rm -f nixvis
+rm -f nixvis.tar.gz
+rm -rf release
+
+echo "编译主程序..."
+go build -ldflags="-s -w" -o nixvis ./cmd/nixvis/main.go
+
+if [ $? -eq 0 ]; then
+    echo "构建成功!"
+
+    mkdir -p release
+    cp nixvis release/
+    mkdir -p release/data
+    cp -r data/static release/data/
+    cp -r data/templates release/data/
+    echo '
+{
+    "system": {
+        "logDestination": "file"
+    },
+    "server": {
+        "Port": ":8088"
+    },
+    "websites": [
+        {
+            "name": "web1",
+            "logPath": "web1.log"
+        },
+        {
+            "name": "web2",
+            "logPath": "web2.log"
+        }
+    ]
+}
+' >release/data/config.json
+
+    rm -f nixvis
+    mv release nixvis
+    tar -czf nixvis.tar.gz nixvis/
+    rm -rf nixvis/
+
+    echo "打包完成"
+else
+    echo "打包失败!"
+    exit 1
+fi
