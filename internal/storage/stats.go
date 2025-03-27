@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"sync"
 	"time"
+
+	"github.com/sirupsen/logrus"
 )
 
 // StatPoint 通用的统计点数据结构
@@ -68,6 +70,8 @@ func (f *StatsFactory) registerDefaultManagers() {
 	f.managers["browser"] = NewBrowserStatsManager(f.repo)
 	f.managers["os"] = NewOsStatsManager(f.repo)
 	f.managers["device"] = NewDeviceStatsManager(f.repo)
+
+	f.managers["location"] = NewLocationStatsManager(f.repo)
 }
 
 // GetManager 获取指定类型的统计管理器
@@ -115,7 +119,12 @@ func (f *StatsFactory) buildCacheKey(managerType string, query StatsQuery) strin
 		if limit, ok := query.ExtraParam["limit"].(int); ok {
 			key = fmt.Sprintf("%s-limit:%d", key, limit)
 		}
+
+		if locationType, ok := query.ExtraParam["locationType"].(string); ok {
+			key = fmt.Sprintf("%s-locationType:%s", key, locationType)
+		}
 	}
+	logrus.Info(key)
 
 	return key
 }

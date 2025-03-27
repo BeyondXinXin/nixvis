@@ -3,9 +3,10 @@ module github.com/beyondxinxin/nixvis
 go 1.23.6
 
 require (
-	github.com/dustin/go-humanize v1.0.1
 	github.com/gin-contrib/cors v1.7.4
 	github.com/gin-gonic/gin v1.10.0
+	github.com/lionsoul2014/ip2region/binding/golang v0.0.0-20241220152942-06eb5c6e8230
+	github.com/mileusna/useragent v1.3.5
 	github.com/sirupsen/logrus v1.9.3
 	modernc.org/sqlite v1.36.1
 )
@@ -15,6 +16,7 @@ require (
 	github.com/bytedance/sonic/loader v0.2.1 // indirect
 	github.com/cloudwego/base64x v0.1.4 // indirect
 	github.com/cloudwego/iasm v0.2.0 // indirect
+	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.7 // indirect
 	github.com/gin-contrib/sse v0.1.0 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect

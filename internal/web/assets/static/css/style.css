@@ -1,0 +1,263 @@
+/* 基本样式 */
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+    line-height: 1.6;
+    color: #333;
+    background-color: #f5f5f5;
+    margin: 0;
+    padding: 0;
+}
+
+/* 布局容器 */
+.container {
+    max-width: 1300px;
+    margin: 0 auto;
+    padding: 0px;
+}
+
+/* 页头样式 */
+header {
+    text-align: center;
+    margin-bottom: 5px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+}
+
+h1 {
+    color: #2c3e50;
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
+
+/* 网站选择下拉菜单样式 */
+.website-dropdown {
+    font-size: 1.5rem;
+    font-weight: bold;
+    padding: 5px 10px;
+    margin-right: 10px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+    background-color: #f8f8f8;
+    cursor: pointer;
+}
+
+.website-dropdown:focus {
+    outline: none;
+    border-color: #1a5599;
+}
+
+/* 控制面板样式 - 第一块 */
+.controls-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+    padding: 20px;
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    margin: 20px 0;
+}
+
+/* 统计数据区域 */
+.overall-stats {
+    display: flex;
+    gap: 20px;
+}
+
+.stat-item {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    margin-right: 25px;
+}
+
+.stat-label {
+    font-size: 13px;
+    color: #666;
+    font-weight: 600;
+}
+
+.stat-value {
+    font-size: 18px;
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+
+/* 统计数值突出显示 */
+.stat-value.highlight {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #2c3e50;
+    margin-left: 8px;
+    display: inline-block;
+    min-width: 60px;
+}
+
+/* 控制选项样式 */
+.control-options {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+}
+
+/* 视图切换容器 */
+.view-toggle {
+    display: flex;
+    padding: 0px 0px 10px 0px;
+}
+
+/* 切换按钮样式 */
+.data-view-toggle-btn {
+    padding: 8px 16px;
+    border: 1px solid #ddd;
+    background-color: white;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 14px;
+}
+
+.data-view-toggle-btn:first-child {
+    border-radius: 4px 0 0 4px;
+}
+
+.data-view-toggle-btn:last-child {
+    border-radius: 0 4px 4px 0;
+}
+
+.data-view-toggle-btn.active {
+    background-color: #007bff;
+    color: white;
+    border-color: #007bff;
+}
+
+.data-view-toggle-btn.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.data-map-toggle-btn {
+    padding: 8px 16px;
+    border: 1px solid #ddd;
+    background-color: white;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 14px;
+}
+
+.data-map-toggle-btn:first-child {
+    border-radius: 4px 0 0 4px;
+}
+
+.data-map-toggle-btn:last-child {
+    border-radius: 0 4px 4px 0;
+}
+
+.data-map-toggle-btn.active {
+    background-color: #007bff;
+    color: white;
+    border-color: #007bff;
+}
+
+.data-map-toggle-btn.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* 日期范围下拉菜单 */
+#date-range {
+    margin-right: 0px;
+    appearance: none;
+    padding: 10px 20px 10px 15px;
+    border-radius: 4px;
+    border: 1px solid #ddd;
+    background: white url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23333' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") no-repeat right 10px center;
+    cursor: pointer;
+    font-size: 14px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    width: auto;
+    min-width: 120px;
+    max-width: 160px;
+}
+
+#date-range:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+/* 图表容器 - 第二块 */
+.chart-container {
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    padding: 20px 20px 60px 20px;
+    margin-bottom: 0px;
+    height: 350px;
+}
+
+/* 地理统计区域样式 - 第三块 */
+.geo-stats-section {
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    margin: 20px 0 20px 0;
+    padding: 20px;
+    overflow: hidden;
+    height: 520px;
+}
+
+.geo-stats-content {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+}
+
+.map-block {
+    width: 100%;
+}
+
+.map-container {
+    width: 100%;
+    height: 400px;
+    position: relative;
+}
+
+.geo-info-block {
+    display: flex;
+    flex-direction: column;
+}
+
+.geo-controls {
+    margin-bottom: 15px;
+}
+
+
+
+/* 页脚样式 */
+footer {
+    text-align: center;
+    padding: 20px 20px 0px 20px;
+    color: #6c757d;
+    font-size: 0.9rem;
+    border-top: 1px solid #eee;
+}
+
+/* 响应式布局调整 */
+@media (max-width: 768px) {
+    .controls-container {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 15px;
+    }
+
+    .overall-stats {
+        justify-content: space-between;
+        width: 100%;
+    }
+
+    .control-options {
+        width: 100%;
+        justify-content: space-between;
+    }
+}

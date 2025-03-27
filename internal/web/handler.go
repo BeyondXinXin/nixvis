@@ -2,14 +2,11 @@ package web
 
 import (
 	"fmt"
-	"html/template"
+	"io/fs"
 	"net/http"
-	"path/filepath"
-	"time"
 
 	"github.com/beyondxinxin/nixvis/internal/storage"
 	"github.com/beyondxinxin/nixvis/internal/util"
-	"github.com/dustin/go-humanize"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 )
@@ -19,18 +16,33 @@ func SetupRoutes(
 	router *gin.Engine,
 	statsFactory *storage.StatsFactory) {
 
-	// 初始化模板引擎
-	loadTemplates(router)
+	// 加载模板
+	tmpl, err := LoadTemplates()
+	if err != nil {
+		logrus.Fatalf("无法加载模板: %v", err)
+	}
+	router.SetHTMLTemplate(tmpl)
 
-	// 首页路由 - 显示访问统计
+	// 设置静态文件服务
+	staticFS, err := GetStaticFS()
+	if err != nil {
+		logrus.Fatalf("无法加载静态文件: %v", err)
+	}
+
+	router.StaticFS("/static", staticFS)
 	router.GET("/", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "index.html", gin.H{
 			"title": "NixVis - Nginx访问统计",
 		})
 	})
-
-	// 静态文件服务
-	router.Static("/static", "./data/static")
+	router.GET("/favicon.ico", func(c *gin.Context) {
+		data, err := fs.ReadFile(staticFiles, "assets/static/favicon.ico")
+		if err != nil {
+			c.Status(http.StatusNotFound)
+			return
+		}
+		c.Data(http.StatusOK, "image/x-icon", data)
+	})
 
 	// 获取所有网站列表
 	router.GET("/api/websites", func(c *gin.Context) {
@@ -78,11 +90,7 @@ func SetupRoutes(
 
 		// 根据统计类型设置额外参数
 		switch statsType {
-		case "url":
-		case "referer":
-		case "browser":
-		case "os":
-		case "device":
+		case "url", "referer", "browser", "os", "device":
 			if limitStr := c.Query("limit"); limitStr != "" {
 				limit := 10 // 默认值
 				if _, err := fmt.Sscanf(limitStr, "%d", &limit); err == nil {
@@ -91,6 +99,25 @@ func SetupRoutes(
 			} else {
 				query.ExtraParam["limit"] = 10
 			}
+		case "location":
+			if limitStr := c.Query("limit"); limitStr != "" {
+				limit := 99 // 默认值
+				if _, err := fmt.Sscanf(limitStr, "%d", &limit); err == nil {
+					query.ExtraParam["limit"] = limit
+				}
+			} else {
+				query.ExtraParam["limit"] = 99
+			}
+
+			if locationType := c.Query("locationType"); locationType != "" {
+				query.ExtraParam["locationType"] = locationType
+			} else {
+				c.JSON(http.StatusBadRequest, gin.H{
+					"error": "缺少必要参数: locationType",
+				})
+				return
+			}
+
 		case "timeseries":
 			if query.ViewType == "" {
 				c.JSON(http.StatusBadRequest, gin.H{
@@ -120,32 +147,4 @@ func SetupRoutes(
 		c.JSON(http.StatusOK, result)
 	})
 
-}
-
-// 加载模板文件
-func loadTemplates(router *gin.Engine) {
-	// 添加自定义函数
-	funcMap := template.FuncMap{
-		"formatTime": func(t time.Time) string {
-			return t.Format("2006-01-02 15:04:05")
-		},
-		"humanizeBytes": func(bytes int64) string {
-			return humanize.Bytes(uint64(bytes))
-		},
-		"add": func(a, b int) int {
-			return a + b
-		},
-	}
-
-	// 配置模板
-	templatesDir := "./data/templates"
-	router.SetFuncMap(funcMap)
-
-	// 加载所有模板
-	templates, err := filepath.Glob(filepath.Join(templatesDir, "*.html"))
-	if err != nil {
-		logrus.Fatalf("无法加载模板: %v", err)
-	}
-
-	router.LoadHTMLFiles(templates...)
 }

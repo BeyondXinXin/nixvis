@@ -1,7 +1,5 @@
-bin/
 go.sum
 diff.patch
-data/*
-!data/static/
-!data/templates/
-nixvis.tar.gz
+nixvis_config.json
+nixvis_data/
+weblog_eg/

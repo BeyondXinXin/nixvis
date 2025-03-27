@@ -32,6 +32,23 @@ type WebsiteConfig struct {
 	LogPath string `json:"logPath"`
 }
 
+// ReadRawConfig 读取配置文件但不初始化全局变量
+func ReadRawConfig() (*Config, error) {
+	// 读取文件内容
+	bytes, err := os.ReadFile(ConfigFile)
+	if err != nil {
+		return nil, err
+	}
+
+	cfg := &Config{}
+	err = json.Unmarshal(bytes, cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	return cfg, nil
+}
+
 // ReadConfig 读取配置文件并返回配置，同时初始化 ID 映射
 func ReadConfig() *Config {
 	if globalConfig != nil {
@@ -39,7 +56,7 @@ func ReadConfig() *Config {
 	}
 
 	// 读取文件内容
-	bytes, err := os.ReadFile("./data/config.json")
+	bytes, err := os.ReadFile(ConfigFile)
 	if err != nil {
 		panic(err)
 	}

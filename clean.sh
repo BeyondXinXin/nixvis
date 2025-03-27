@@ -49,26 +49,6 @@ else
     echo "端口8088当前未被占用"
 fi
 
-# 清理data目录中除config.json之外的文件，保留文件夹
-echo "开始清理data目录..."
-
-# 进入data目录
-cd ./data || {
-    echo "无法进入data目录"
-    exit 1
-}
-
-# 获取所有文件（不包括目录）
-files=$(find . -maxdepth 1 -type f ! -name "config.json")
-
-# 删除这些文件
-if [ -n "$files" ]; then
-    echo "正在删除以下文件:"
-    echo "$files"
-    rm $files
-    echo "文件删除完成"
-else
-    echo "没有需要删除的文件"
-fi
-
+echo "开始清理 nixvis_data 目录..."
+rm -rf ./nixvis_data
 echo "清理工作完成"

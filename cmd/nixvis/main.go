@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"os"
 	"os/signal"
@@ -18,31 +19,66 @@ import (
 )
 
 func main() {
-	// 初始化配置
-	util.InitDir()
+	// 处理配置文件初始化和命令行参数
+	if util.HandleAppConfig() {
+		os.Exit(0) // 如果需要退出，例如生成配置后
+	}
+
+	// 初始化日志、配置
 	util.ConfigureLogging()
-	cfg := util.ReadConfig()
 	logrus.Info("------ 服务启动成功 ------")
 	defer logrus.Info("------ 服务已安全关闭 ------")
 
-	logrus.Info("****** 初始化数据 ******")
-	repository, err := storage.NewRepository()
+	// 初始化数据库
+	err := util.InitIPGeoLocation()
 	if err != nil {
-		logrus.WithField("error", err).Error("Failed to create database file")
 		return
 	}
-	if err := repository.Init(); err != nil {
-		logrus.WithField("error", err).Error("Failed to create tables")
+	repository, err := initRepository()
+	if err != nil {
 		return
-
 	}
 	logParser := storage.NewLogParser(repository)
 	statsFactory := storage.NewStatsFactory(repository)
+	defer repository.Close()
 
-	logrus.Info("****** 初始扫描 ******")
-	executePeriodicTasks(logParser)
+	// 初始扫描
+	initScan(logParser)
 
-	logrus.Info("****** 启动HTTP服务器 ******")
+	// 启动HTTP服务器
+	startHTTPServer(statsFactory)
+
+	// 启动维护任务
+	startPeriodicTaskScheduler(logParser)
+}
+
+// 初始化数据
+func initRepository() (*storage.Repository, error) {
+	logrus.Info("****** 1 初始化数据 ******")
+	repository, err := storage.NewRepository()
+	if err != nil {
+		logrus.WithField("error", err).Error("Failed to create database file")
+		return repository, err
+	}
+
+	if err := repository.Init(); err != nil {
+		logrus.WithField("error", err).Error("Failed to create tables")
+		return repository, err
+	}
+
+	return repository, nil
+}
+
+// 初始扫描
+func initScan(parser *storage.LogParser) {
+	logrus.Info("****** 2 初始扫描 ******")
+	executePeriodicTasks(parser)
+}
+
+// 启动HTTP服务器
+func startHTTPServer(statsFactory *storage.StatsFactory) {
+	logrus.Info("****** 3 启动HTTP服务器 ******")
+	cfg := util.ReadConfig()
 	r := setupCORS(statsFactory)
 	srv := &http.Server{
 		Addr:    cfg.Server.Port,
@@ -55,33 +91,6 @@ func main() {
 		}
 	}()
 	logrus.Info("服务器初始化成功")
-
-	logrus.Info("****** 启动维护任务 ******")
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	go runPeriodicTaskScheduler(ctx, logParser)
-
-	// 等待程序退出
-	shutdownSignal := make(chan os.Signal, 1)
-	signal.Notify(shutdownSignal, os.Interrupt, syscall.SIGTERM)
-	<-shutdownSignal
-
-	logrus.Info("****** 开始关闭服务器 ******")
-
-	// 取消上下文将会通知所有后台任务退出
-	logrus.Info("停止维护任务")
-	cancel()
-
-	// 给后台任务一些时间来完成清理
-	shutdownCtx, shutdownCancel := context.WithTimeout(
-		context.Background(), 3*time.Second)
-	defer shutdownCancel()
-	<-shutdownCtx.Done()
-
-	logrus.Info("关闭数据库")
-	repository.Close()
-
 }
 
 // setupCORS 配置跨域中间件
@@ -104,18 +113,50 @@ func setupCORS(statsFactory *storage.StatsFactory) *gin.Engine {
 	return r
 }
 
+// 启动维护任务
+func startPeriodicTaskScheduler(logParser *storage.LogParser) {
+	logrus.Info("****** 4 启动维护任务 ******")
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	go runPeriodicTaskScheduler(ctx, logParser)
+
+	// 等待程序退出
+	shutdownSignal := make(chan os.Signal, 1)
+	signal.Notify(shutdownSignal, os.Interrupt, syscall.SIGTERM)
+	<-shutdownSignal
+
+	logrus.Info("开始关闭服务 ......")
+
+	cancel() // 取消上下文将会通知所有后台任务退出
+
+	// 给后台任务一些时间来完成清理
+	shutdownCtx, shutdownCancel :=
+		context.WithTimeout(context.Background(), 1*time.Second)
+	defer shutdownCancel()
+	<-shutdownCtx.Done()
+}
+
 // runPeriodicTaskScheduler 运行周期性任务（每5分钟）
 func runPeriodicTaskScheduler(
 	ctx context.Context, parser *storage.LogParser) {
 
-	// 定时扫描 - 每5分钟一次
-	ticker := time.NewTicker(5 * time.Minute)
+	interval := 5 * time.Minute
+	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
+
+	iteration := 0
 
 	for {
 		select {
 		case <-ticker.C:
-			logrus.Info("****** 开始执行维护任务 ******")
+			iteration++
+			logrus.WithFields(logrus.Fields{
+				"iteration": iteration,
+				"interval":  interval,
+			}).Info("执行定期维护任务")
+
 			executePeriodicTasks(parser)
 		case <-ctx.Done():
 			return
@@ -124,11 +165,35 @@ func runPeriodicTaskScheduler(
 }
 
 // executePeriodicTasks 执行周期性任务
-func executePeriodicTasks(
-	parser *storage.LogParser) {
+func executePeriodicTasks(parser *storage.LogParser) {
+	logrus.WithField("task", "nginx_scan").Info("开始扫描Nginx日志")
 
-	logrus.Info("开始扫描Nginx日志")
-	parser.ScanNginxLogs()
-	logrus.Info("Nginx日志扫描完成")
+	startTime := time.Now()
+	results := parser.ScanNginxLogs()
+	totalDuration := time.Since(startTime)
 
+	// 打印每个网站的扫描结果
+	totalEntries := 0
+	successCount := 0
+
+	for _, result := range results {
+		if result.WebName == "" {
+			continue // 跳过空记录
+		}
+
+		totalEntries += result.TotalEntries
+
+		if result.Success {
+			successCount++
+			logrus.Info(fmt.Sprintf("网站 %s (%s) 扫描完成: %d 条记录, 耗时 %.2fs",
+				result.WebName, result.WebID, result.TotalEntries, result.Duration.Seconds()))
+		} else {
+			logrus.Info(fmt.Sprintf("网站 %s (%s) 扫描失败: %s",
+				result.WebName, result.WebID, result.Error))
+		}
+	}
+
+	// 任务完成总结日志
+	logrus.Info(fmt.Sprintf("Nginx日志扫描完成: %d/%d 个站点成功, 共 %d 条记录, 总耗时 %.2fs",
+		successCount, len(results), totalEntries, totalDuration.Seconds()))
 }

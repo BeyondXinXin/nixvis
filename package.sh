@@ -7,48 +7,25 @@ export GOARCH=amd64
 
 echo "清理旧文件..."
 rm -f nixvis
-rm -f nixvis.tar.gz
-rm -rf release
 
 echo "编译主程序..."
 go build -ldflags="-s -w" -o nixvis ./cmd/nixvis/main.go
 
 if [ $? -eq 0 ]; then
-    echo "构建成功!"
+    echo "构建成功! 可执行文件: nixvis"
 
-    mkdir -p release
-    cp nixvis release/
-    mkdir -p release/data
-    cp -r data/static release/data/
-    cp -r data/templates release/data/
-    echo '
-{
-    "system": {
-        "logDestination": "file"
-    },
-    "server": {
-        "Port": ":8088"
-    },
-    "websites": [
-        {
-            "name": "web1",
-            "logPath": "web1.log"
-        },
-        {
-            "name": "web2",
-            "logPath": "web2.log"
-        }
-    ]
-}
-' >release/data/config.json
+    # 显示文件大小
+    FILE_SIZE=$(du -h nixvis | cut -f1)
+    echo "文件大小: ${FILE_SIZE}"
 
-    rm -f nixvis
-    mv release nixvis
-    tar -czf nixvis.tar.gz nixvis/
-    rm -rf nixvis/
+    # 检查是否正确嵌入了资源
+    echo "验证资源嵌入..."
+    strings nixvis | grep -q "<!DOCTYPE html>" && echo "✓ HTML资源已嵌入" || echo "✗ HTML资源可能未正确嵌入"
+    strings nixvis | grep -q ".css" && echo "✓ CSS资源已嵌入" || echo "✗ CSS资源可能未正确嵌入"
+    strings nixvis | grep -q ".js" && echo "✓ JS资源已嵌入" || echo "✗ JS资源可能未正确嵌入"
 
-    echo "打包完成"
+    echo "构建完成，可执行文件已准备就绪"
 else
-    echo "打包失败!"
+    echo "构建失败!"
     exit 1
 fi

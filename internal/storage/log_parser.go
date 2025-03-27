@@ -6,18 +6,29 @@ import (
 	"errors"
 	"net/url"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/beyondxinxin/nixvis/internal/util"
+	"github.com/mileusna/useragent"
 	"github.com/sirupsen/logrus"
 )
 
 var (
 	nginxLogPattern = regexp.MustCompile(`^(\S+) - (\S+) \[([^\]]+)\] "(\S+) ([^"]+) HTTP\/\d\.\d" (\d+) (\d+) "([^"]*)" "([^"]*)"`)
 )
+
+// 解析结果
+type ParserResult struct {
+	WebName      string
+	WebID        string
+	TotalEntries int
+	Duration     time.Duration
+	Success      bool
+	Error        error
+}
 
 // 保存日志扫描的状态
 type LogScanState struct {
@@ -35,7 +46,7 @@ type LogParser struct {
 
 // 创建新的日志解析器
 func NewLogParser(userRepoPtr *Repository) *LogParser {
-	statePath := "./data/nginx_scan_state.json"
+	statePath := filepath.Join(util.DataDir, "nginx_scan_state.json")
 	parser := &LogParser{
 		repo:      userRepoPtr,
 		statePath: statePath,
@@ -46,33 +57,39 @@ func NewLogParser(userRepoPtr *Repository) *LogParser {
 }
 
 // 增量扫描Nginx日志文件
-func (p *LogParser) ScanNginxLogs() error {
+func (p *LogParser) ScanNginxLogs() []ParserResult {
 	// 获取所有网站ID
 	websiteIDs := util.GetAllWebsiteIDs()
+	parserResults := make([]ParserResult, len(websiteIDs))
 
-	for _, id := range websiteIDs {
-		website, ok := util.GetWebsiteByID(id)
-		if !ok {
-			logrus.Warnf("找不到ID为 %s 的网站配置", id)
-			continue
-		}
+	for i, id := range websiteIDs {
+		startTime := time.Now()
 
-		logrus.Infof("%s (%s) 开始扫描", website.Name, id)
+		website, _ := util.GetWebsiteByID(id)
+		parserResult := EmptyParserResult(website.Name, id)
 
-		// 1. 打开文件并检查状态
-		err := p.scanFile(id, website.LogPath)
-		if err != nil {
-			logrus.Errorf("扫描网站 %s 的日志失败: %v", website.Name, err)
-			continue
-		}
+		p.scanFile(id, website.LogPath, &parserResult)
+
+		parserResult.Duration = time.Since(startTime)
+		parserResults[i] = parserResult
 	}
 
-	// 2. 统一更新并保存所有状态
-	if err := p.updateState(); err != nil {
-		logrus.Errorf("保存扫描状态失败: %v", err)
-	}
+	// 2. 更新并保存状态
+	p.updateState()
 
-	return nil
+	return parserResults
+}
+
+// 生成空结果
+func EmptyParserResult(name, id string) ParserResult {
+	return ParserResult{
+		WebName:      name,
+		WebID:        id,
+		TotalEntries: 0,
+		Duration:     0,
+		Success:      true,
+		Error:        nil,
+	}
 }
 
 // 加载上次扫描状态
@@ -97,18 +114,22 @@ func (p *LogParser) loadState() {
 }
 
 // 打开并扫描日志文件
-func (p *LogParser) scanFile(websiteID string, logPath string) error {
+func (p *LogParser) scanFile(websiteID string, logPath string, parserResult *ParserResult) {
 	// 打开文件
 	file, err := os.Open(logPath)
 	if err != nil {
-		return err
+		parserResult.Success = false
+		parserResult.Error = err
+		return
 	}
 	defer file.Close()
 
 	// 获取文件信息
 	fileInfo, err := file.Stat()
 	if err != nil {
-		return err
+		parserResult.Success = false
+		parserResult.Error = err
+		return
 	}
 
 	// 确定扫描起始位置
@@ -118,11 +139,13 @@ func (p *LogParser) scanFile(websiteID string, logPath string) error {
 	// 设置读取位置
 	_, err = file.Seek(startOffset, 0)
 	if err != nil {
-		return err
+		parserResult.Success = false
+		parserResult.Error = err
+		return
 	}
 
 	// 读取并解析日志
-	p.parseLogLines(file, websiteID)
+	p.parseLogLines(file, websiteID, parserResult)
 
 	// 更新状态（但不保存）
 	state := p.states[websiteID]
@@ -130,8 +153,6 @@ func (p *LogParser) scanFile(websiteID string, logPath string) error {
 	state.LastSize = currentSize
 	state.LastScan = time.Now()
 	p.states[websiteID] = state
-
-	return nil
 }
 
 // 确定扫描起始位置
@@ -156,10 +177,9 @@ func (p *LogParser) determineStartOffset(websiteID string, currentSize int64) in
 }
 
 // 解析日志行
-func (p *LogParser) parseLogLines(file *os.File, websiteID string) {
+func (p *LogParser) parseLogLines(file *os.File, websiteID string, parserResult *ParserResult) {
 	scanner := bufio.NewScanner(file)
 	sumEntries := 0
-	startTime := time.Now()
 
 	// 批量插入相关
 	const batchSize = 100 // 可以调整批量大小
@@ -198,22 +218,20 @@ func (p *LogParser) parseLogLines(file *os.File, websiteID string) {
 		logrus.Errorf("扫描网站 %s 的文件时出错: %v", websiteID, err)
 	}
 
-	// 输出性能统计
-	totalElapsed := time.Since(startTime)
-	website, _ := util.GetWebsiteByID(websiteID)
-	logrus.Infof("%s (%s) 扫描完成 - 新增条数: %d, 耗时: %.2fs",
-		website.Name, websiteID, sumEntries, totalElapsed.Seconds())
+	parserResult.TotalEntries = sumEntries
 }
 
 // 更新并保存状态
-func (p *LogParser) updateState() error {
+func (p *LogParser) updateState() {
 	data, err := json.Marshal(p.states)
 	if err != nil {
-		return err
+		logrus.Errorf("保存扫描状态失败: %v", err)
+		return
 	}
-	// 确保目录存在
-	os.MkdirAll("./data", 0755)
-	return os.WriteFile(p.statePath, data, 0644)
+
+	if err := os.WriteFile(p.statePath, data, 0644); err != nil {
+		logrus.Errorf("保存扫描状态失败: %v", err)
+	}
 }
 
 // 解析单行Nginx日志
@@ -240,6 +258,37 @@ func (p *LogParser) parseNginxLogLine(line string) (*NginxLogRecord, error) {
 		referPath = matches[8]
 	}
 
+	userAgent := useragent.Parse(matches[9])
+	var browser, os, device string
+
+	if userAgent.Bot {
+		browser = "蜘蛛"
+		os = "蜘蛛"
+		device = "蜘蛛"
+	} else {
+		if userAgent.Name != "" {
+			browser = userAgent.Name
+		} else {
+			browser = "桌面设备"
+		}
+
+		if userAgent.OS != "" {
+			os = userAgent.OS
+		} else {
+			os = "其他"
+		}
+
+		if userAgent.Mobile {
+			device = "手机"
+		} else if userAgent.Tablet {
+			device = "平板"
+		} else if userAgent.Desktop {
+			device = "桌面设备"
+		} else {
+			device = "其他"
+		}
+	}
+
 	pageviewFlag := 0
 
 	// pv过滤条件：
@@ -252,73 +301,22 @@ func (p *LogParser) parseNginxLogLine(line string) (*NginxLogRecord, error) {
 		pageviewFlag = 1
 	}
 
-	browser, os, device := parseUserAgent(matches[9])
+	domesticLocation, globalLocation, _ := util.GetIPLocation(matches[1])
 
 	return &NginxLogRecord{
-		ID:           0,
-		IP:           matches[1],
-		PageviewFlag: pageviewFlag,
-		Timestamp:    timestamp,
-		Method:       matches[4],
-		Url:          decodedPath,
-		Status:       statusCode,
-		BytesSent:    bytesSent,
-		Referer:      referPath,
-		UserBrowser:  browser,
-		UserOs:       os,
-		UserDevice:   device,
+		ID:               0,
+		IP:               matches[1],
+		PageviewFlag:     pageviewFlag,
+		Timestamp:        timestamp,
+		Method:           matches[4],
+		Url:              decodedPath,
+		Status:           statusCode,
+		BytesSent:        bytesSent,
+		Referer:          referPath,
+		UserBrowser:      browser,
+		UserOs:           os,
+		UserDevice:       device,
+		DomesticLocation: domesticLocation,
+		GlobalLocation:   globalLocation,
 	}, nil
-}
-
-// 解析 User-Agent 字符串，提取浏览器、操作系统和设备信息
-func parseUserAgent(userAgentString string) (browser, os, device string) {
-	// 默认值
-	browser = "其他"
-	os = "其他"
-	device = "桌面设备"
-
-	// 浏览器检测
-	switch {
-	case strings.Contains(userAgentString, "Chrome") &&
-		strings.Contains(userAgentString, "Safari") &&
-		!strings.Contains(userAgentString, "Edg"):
-		browser = "Chrome"
-	case strings.Contains(userAgentString, "Firefox"):
-		browser = "Firefox"
-	case strings.Contains(userAgentString, "Safari") &&
-		!strings.Contains(userAgentString, "Chrome"):
-		browser = "Safari"
-	case strings.Contains(userAgentString, "Edg"):
-		browser = "Edge"
-	case strings.Contains(userAgentString, "MSIE") ||
-		strings.Contains(userAgentString, "Trident"):
-		browser = "Internet Explorer"
-	}
-
-	// 操作系统检测
-	switch {
-	case strings.Contains(userAgentString, "Windows"):
-		os = "Windows"
-	case strings.Contains(userAgentString, "Mac OS"):
-		os = "macOS"
-	case strings.Contains(userAgentString, "iPhone"):
-		os = "iOS"
-	case strings.Contains(userAgentString, "iPad"):
-		os = "iOS"
-	case strings.Contains(userAgentString, "Android"):
-		os = "Android"
-	case strings.Contains(userAgentString, "Linux"):
-		os = "Linux"
-	}
-
-	// 设备类型检测
-	if strings.Contains(userAgentString, "Mobile") ||
-		strings.Contains(userAgentString, "iPhone") {
-		device = "移动设备"
-	} else if strings.Contains(userAgentString, "Tablet") ||
-		strings.Contains(userAgentString, "iPad") {
-		device = "平板设备"
-	}
-
-	return
 }

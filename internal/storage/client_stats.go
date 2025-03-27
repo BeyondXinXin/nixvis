@@ -55,6 +55,13 @@ func NewDeviceStatsManager(userRepoPtr *Repository) *ClientStatsManager {
 	}
 }
 
+func NewLocationStatsManager(userRepoPtr *Repository) *ClientStatsManager {
+	return &ClientStatsManager{
+		repo:      userRepoPtr,
+		statsType: "location",
+	}
+}
+
 // 实现 StatsManager 接口
 func (s *ClientStatsManager) Query(query StatsQuery) (StatsResult, error) {
 	result := ClientStats{
@@ -62,12 +69,11 @@ func (s *ClientStatsManager) Query(query StatsQuery) (StatsResult, error) {
 		URLOverall: make([]StatPoint, 0),
 	}
 
-	limit := 10 // 默认值
-	if query.ExtraParam != nil {
-		if l, ok := query.ExtraParam["limit"].(int); ok {
-			limit = l
-		}
+	statsType := s.statsType
+	if s.statsType == "location" {
+		statsType = query.ExtraParam["locationType"].(string) + "_location"
 	}
+	limit, _ := query.ExtraParam["limit"].(int)
 
 	startTime, endTime, err := util.TimePeriod(query.TimeRange)
 	if err != nil {
@@ -77,16 +83,16 @@ func (s *ClientStatsManager) Query(query StatsQuery) (StatsResult, error) {
 	// 构建、执行查询
 	dbQueryStr := fmt.Sprintf(`
         SELECT 
-            %s AS url, 
+            %[1]s AS url, 
             COUNT(*) AS pv,
             COUNT(DISTINCT ip) AS uv,
             COALESCE(SUM(bytes_sent), 0) AS traffic
-        FROM "%s_nginx_logs" INDEXED BY idx_%s_pv_ts_ip
+        FROM "%[2]s_nginx_logs" INDEXED BY idx_%[2]s_pv_ts_ip
         WHERE pageview_flag = 1 AND timestamp >= ? AND timestamp < ?
-        GROUP BY %s
+        GROUP BY %[1]s
         ORDER BY uv DESC
         LIMIT ?`,
-		s.statsType, query.WebsiteID, query.WebsiteID, s.statsType)
+		statsType, query.WebsiteID)
 
 	rows, err := s.repo.db.Query(dbQueryStr, startTime.Unix(), endTime.Unix(), limit)
 	if err != nil {
@@ -95,7 +101,6 @@ func (s *ClientStatsManager) Query(query StatsQuery) (StatsResult, error) {
 	defer rows.Close()
 
 	for rows.Next() {
-		// 解析每一行数据
 		var url string
 		var urlStats StatPoint
 		if err := rows.Scan(&url, &urlStats.PV, &urlStats.UV, &urlStats.Traffic); err != nil {
