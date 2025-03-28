@@ -6,7 +6,6 @@ import (
 )
 
 // TimePeriod 根据时间范围字符串计算开始和结束时间
-// TimePeriod 可以是 "today", "week", "last7days", "month", "last30days"
 func TimePeriod(timeRange string) (time.Time, time.Time, error) {
 
 	now := time.Now()
@@ -16,6 +15,9 @@ func TimePeriod(timeRange string) (time.Time, time.Time, error) {
 	switch timeRange {
 	case "today":
 		startTime = setTime(now, 0, 0, 0)
+	case "yesterday":
+		startTime = setTime(now.AddDate(0, 0, -1), 0, 0, 0)
+		endTime = setTime(now.AddDate(0, 0, -1), 23, 59, 59)
 	case "week":
 		startTime, endTime = weekBounds(now)
 	case "last7days":
@@ -32,8 +34,6 @@ func TimePeriod(timeRange string) (time.Time, time.Time, error) {
 }
 
 // TimePoints 根据时间范围类型和视图类型直接返回时间点数组和标签数组
-// timeRangeType 可以是 "today", "week", "last7days", "month", "last30days"
-// viewType 可以是 "hourly" 或 "daily"
 func TimePointsAndLabels(
 	timeRangeType string, viewType string) ([]time.Time, []string) {
 
@@ -54,6 +54,9 @@ func TimePointsAndLabels(
 
 	var startDay, endDay time.Time
 	switch timeRangeType {
+	case "yesterday":
+		startDay = setTime(now.AddDate(0, 0, -1), 0, 0, 0)
+		endDay = setTime(now.AddDate(0, 0, -1), 23, 0, 0)
 	case "week":
 		startDay, endDay = weekBounds(now)
 	case "last7days":

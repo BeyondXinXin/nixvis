@@ -23,6 +23,28 @@ export function initChart() {
 export function updateChartWebsiteIdAndRange(websiteId, newRange) {
     currentWebsiteId = websiteId;
     range = newRange;
+
+    const dailyBtn = document.querySelector('.data-view-toggle-btn[data-view="daily"]');
+    const hourlyBtn = document.querySelector('.data-view-toggle-btn[data-view="hourly"]');
+
+    if (range === 'today' || range === 'yesterday') {
+        dailyBtn.classList.add('disabled');
+        dailyBtn.disabled = true;
+
+        viewToggleBtns.forEach(btn => btn.classList.remove('active'));
+        hourlyBtn.classList.add('active');
+
+        currentView = 'hourly';
+    } else {
+        dailyBtn.classList.remove('disabled');
+        dailyBtn.disabled = false;
+
+        viewToggleBtns.forEach(btn => btn.classList.remove('active'));
+        dailyBtn.classList.add('active');
+
+        currentView = 'daily';
+    }
+
     updateChart();
 }
 
@@ -175,32 +197,6 @@ async function updateChart() {
 
     // 创建新图表
     visitsChart = new Chart(ctx, chartConfig);
-}
-
-// 更新视图切换按钮状态
-export function updateViewToggleButtons(range) {
-    // 如果选择了"今天"，强制使用"按小时"视图并禁用"按天"按钮
-    if (range === 'today') {
-        const dailyBtn = document.querySelector('.data-view-toggle-btn[data-view="daily"]');
-        const hourlyBtn = document.querySelector('.data-view-toggle-btn[data-view="hourly"]');
-
-        dailyBtn.classList.add('disabled');
-        dailyBtn.disabled = true;
-
-        // 如果当前是按天视图，切换到按小时视图
-        if (currentView === 'daily') {
-            // 更新按钮状态
-            viewToggleBtns.forEach(btn => btn.classList.remove('active'));
-            hourlyBtn.classList.add('active');
-            return 'hourly'; // 返回新的视图模式
-        }
-    } else {
-        // 其他日期范围，启用"按天"按钮
-        const dailyBtn = document.querySelector('.data-view-toggle-btn[data-view="daily"]');
-        dailyBtn.classList.remove('disabled');
-        dailyBtn.disabled = false;
-    }
-    return currentView; // 返回不变的视图模式
 }
 
 // 显示错误消息

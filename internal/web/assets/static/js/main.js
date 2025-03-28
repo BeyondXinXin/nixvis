@@ -11,7 +11,6 @@ import {
     initChart,
     updateChartWebsiteIdAndRange,
     displayErrorMessage,
-    updateViewToggleButtons,
 } from './charts.js';
 
 import {
@@ -87,7 +86,6 @@ async function refreshData() {
     try {
         // 获取统计数据
         const range = dateRange.value;
-        updateViewToggleButtons(range);
 
         updateChartWebsiteIdAndRange(currentWebsiteId, range);
         updateGeoMapWebsiteIdAndRange(currentWebsiteId, range);
