@@ -1,11 +1,11 @@
-package storage
+package stats
 
 import (
 	"fmt"
 	"sync"
 	"time"
 
-	"github.com/sirupsen/logrus"
+	"github.com/beyondxinxin/nixvis/internal/storage"
 )
 
 // StatPoint 通用的统计点数据结构
@@ -35,14 +35,14 @@ type StatsManager interface {
 
 // StatsFactory 统计工厂，管理所有统计管理器
 type StatsFactory struct {
-	repo     *Repository
+	repo     *storage.Repository
 	managers map[string]StatsManager
 	cache    *StatsCache
 	mu       sync.RWMutex
 }
 
 // NewStatsFactory 创建新的统计工厂
-func NewStatsFactory(repo *Repository) *StatsFactory {
+func NewStatsFactory(repo *storage.Repository) *StatsFactory {
 	factory := &StatsFactory{
 		repo:     repo,
 		managers: make(map[string]StatsManager),
@@ -124,7 +124,5 @@ func (f *StatsFactory) buildCacheKey(managerType string, query StatsQuery) strin
 			key = fmt.Sprintf("%s-locationType:%s", key, locationType)
 		}
 	}
-	logrus.Info(key)
-
 	return key
 }

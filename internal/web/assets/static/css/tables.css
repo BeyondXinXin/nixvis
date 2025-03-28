@@ -37,18 +37,22 @@
 }
 
 /* URL排名表格列宽 */
+#url-ranking-table .item-count,
 #url-ranking-table .uv-col,
 #url-ranking-table .pv-col {
-    width: 10%;
+    width: 15%;
+    text-align: center;
 }
 
 /* 来源域名表格列宽 */
 #referer-ranking-table .domain-col {
-    width: 90%;
+    width: 85%;
 }
 
+#referer-ranking-table .item-count,
 #referer-ranking-table .visitor-col {
-    width: 10%;
+    width: 15%;
+    text-align: center;
 }
 
 /* 地区访问排名表格列宽 */
@@ -56,26 +60,21 @@
     width: 85%;
 }
 
+#geo-ranking-table .item-count,
 #geo-ranking-table .visitor-col {
     width: 15%;
+    text-align: center;
 }
 
 /* 客户端统计表格列宽 */
 .client-block .name-col {
-    width: 85%;
+    width: 75%;
 }
 
+.client-block .item-count,
 .client-block .count-col {
-    width: 15%;
-}
-
-/* 排名区域布局 - 第四块 */
-.rankings-section {
-    background-color: white;
-    border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-    margin: 20px 0;
-    overflow: hidden;
+    width: 25%;
+    text-align: center;
 }
 
 .rankings-content {
@@ -83,35 +82,60 @@
     grid-template-columns: 1fr 1fr;
 }
 
-.ranking-block {
-    padding: 15px;
-}
-
 .ranking-block:first-child {
     border-right: 1px solid #eee;
 }
 
-/* 客户端统计区域布局 - 第五块 */
-.client-stats-section {
-    background-color: white;
-    border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-    margin: 20px 0 20px 0;
-    overflow: hidden;
-}
 
 .client-stats-content {
     display: grid;
     grid-template-columns: 1fr 1fr 1fr;
 }
 
-.client-block {
-    padding: 15px;
-}
-
 .client-block:not(:last-child) {
     border-right: 1px solid #eee;
 }
+
+.bar-container {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.bar-label {
+    font-size: 14px;
+    color: #333;
+    min-width: 30px;
+    text-align: right;
+    font-weight: bold;
+}
+
+.bar {
+    position: relative;
+    flex-grow: 1;
+    height: 25px;
+    background-color: #ffffff;
+    overflow: hidden;
+    margin-left: 6px;
+    border: 0px;
+}
+
+.bar-fill {
+    height: 100%;
+    background-color: rgba(173, 216, 230, 0.7);
+}
+
+.bar-percentage {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 18px;
+    color: #696969;
+    white-space: nowrap;
+}
+
+
 
 /* 响应式布局 */
 @media (max-width: 992px) {

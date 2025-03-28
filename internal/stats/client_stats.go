@@ -1,14 +1,19 @@
-package storage
+package stats
 
 import (
 	"fmt"
+	"math"
 
+	"github.com/beyondxinxin/nixvis/internal/storage"
 	"github.com/beyondxinxin/nixvis/internal/util"
 )
 
 type ClientStats struct {
-	URL        []string    `json:"url"`
-	URLOverall []StatPoint `json:"url_overall"`
+	Key       []string `json:"key"`        // 统计项的键
+	PV        []int    `json:"pv"`         // 页面浏览量
+	UV        []int    `json:"uv"`         // 独立访客数
+	PVPercent []int    `json:"pv_percent"` // PV 百分比
+	UVPercent []int    `json:"uv_percent"` // UV 百分比
 }
 
 func (s ClientStats) GetType() string {
@@ -16,46 +21,46 @@ func (s ClientStats) GetType() string {
 }
 
 type ClientStatsManager struct {
-	repo      *Repository
+	repo      *storage.Repository
 	statsType string
 }
 
-func NewURLStatsManager(userRepoPtr *Repository) *ClientStatsManager {
+func NewURLStatsManager(userRepoPtr *storage.Repository) *ClientStatsManager {
 	return &ClientStatsManager{
 		repo:      userRepoPtr,
 		statsType: "url",
 	}
 }
 
-func NewrefererStatsManager(userRepoPtr *Repository) *ClientStatsManager {
+func NewrefererStatsManager(userRepoPtr *storage.Repository) *ClientStatsManager {
 	return &ClientStatsManager{
 		repo:      userRepoPtr,
 		statsType: "referer",
 	}
 }
 
-func NewBrowserStatsManager(userRepoPtr *Repository) *ClientStatsManager {
+func NewBrowserStatsManager(userRepoPtr *storage.Repository) *ClientStatsManager {
 	return &ClientStatsManager{
 		repo:      userRepoPtr,
 		statsType: "user_browser",
 	}
 }
 
-func NewOsStatsManager(userRepoPtr *Repository) *ClientStatsManager {
+func NewOsStatsManager(userRepoPtr *storage.Repository) *ClientStatsManager {
 	return &ClientStatsManager{
 		repo:      userRepoPtr,
 		statsType: "user_os",
 	}
 }
 
-func NewDeviceStatsManager(userRepoPtr *Repository) *ClientStatsManager {
+func NewDeviceStatsManager(userRepoPtr *storage.Repository) *ClientStatsManager {
 	return &ClientStatsManager{
 		repo:      userRepoPtr,
 		statsType: "user_device",
 	}
 }
 
-func NewLocationStatsManager(userRepoPtr *Repository) *ClientStatsManager {
+func NewLocationStatsManager(userRepoPtr *storage.Repository) *ClientStatsManager {
 	return &ClientStatsManager{
 		repo:      userRepoPtr,
 		statsType: "location",
@@ -65,8 +70,11 @@ func NewLocationStatsManager(userRepoPtr *Repository) *ClientStatsManager {
 // 实现 StatsManager 接口
 func (s *ClientStatsManager) Query(query StatsQuery) (StatsResult, error) {
 	result := ClientStats{
-		URL:        make([]string, 0),
-		URLOverall: make([]StatPoint, 0),
+		Key:       make([]string, 0),
+		PV:        make([]int, 0),
+		UV:        make([]int, 0),
+		PVPercent: make([]int, 0),
+		UVPercent: make([]int, 0),
 	}
 
 	statsType := s.statsType
@@ -85,8 +93,7 @@ func (s *ClientStatsManager) Query(query StatsQuery) (StatsResult, error) {
         SELECT 
             %[1]s AS url, 
             COUNT(*) AS pv,
-            COUNT(DISTINCT ip) AS uv,
-            COALESCE(SUM(bytes_sent), 0) AS traffic
+            COUNT(DISTINCT ip) AS uv
         FROM "%[2]s_nginx_logs" INDEXED BY idx_%[2]s_pv_ts_ip
         WHERE pageview_flag = 1 AND timestamp >= ? AND timestamp < ?
         GROUP BY %[1]s
@@ -94,24 +101,41 @@ func (s *ClientStatsManager) Query(query StatsQuery) (StatsResult, error) {
         LIMIT ?`,
 		statsType, query.WebsiteID)
 
-	rows, err := s.repo.db.Query(dbQueryStr, startTime.Unix(), endTime.Unix(), limit)
+	rows, err := s.repo.GetDB().Query(dbQueryStr, startTime.Unix(), endTime.Unix(), limit)
 	if err != nil {
 		return result, fmt.Errorf("查询URL统计失败: %v", err)
 	}
 	defer rows.Close()
 
+	totalPV := 0
+	totalUV := 0
+
 	for rows.Next() {
 		var url string
-		var urlStats StatPoint
-		if err := rows.Scan(&url, &urlStats.PV, &urlStats.UV, &urlStats.Traffic); err != nil {
+		var pv, uv int
+		if err := rows.Scan(&url, &pv, &uv); err != nil {
 			return result, fmt.Errorf("解析URL统计结果失败: %v", err)
 		}
-		result.URL = append(result.URL, url)
-		result.URLOverall = append(result.URLOverall, urlStats)
+		result.Key = append(result.Key, url)
+		result.PV = append(result.PV, pv)
+		result.UV = append(result.UV, uv)
+		totalPV += pv
+		totalUV += uv
 	}
 
 	if err := rows.Err(); err != nil {
 		return result, fmt.Errorf("遍历URL统计结果失败: %v", err)
+	}
+
+	if totalPV > 0 && totalUV > 0 {
+		for i := range result.PV {
+			result.PVPercent = append(
+				result.PVPercent, int(
+					math.Round(float64(result.PV[i])/float64(totalPV)*100)))
+			result.UVPercent = append(
+				result.UVPercent, int(
+					math.Round(float64(result.UV[i])/float64(totalUV)*100)))
+		}
 	}
 
 	return result, nil

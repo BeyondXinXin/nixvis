@@ -77,6 +77,11 @@ func (r *Repository) Close() error {
 	return nil
 }
 
+// 获取数据库连接
+func (r *Repository) GetDB() *sql.DB {
+	return r.db
+}
+
 // 为特定网站批量插入日志记录
 func (r *Repository) BatchInsertLogsForWebsite(websiteID string, logs []NginxLogRecord) error {
 	tx, err := r.db.Begin()

@@ -8,14 +8,6 @@ body {
     padding: 0;
 }
 
-/* 布局容器 */
-.container {
-    max-width: 1300px;
-    margin: 0 auto;
-    padding: 0px;
-}
-
-/* 页头样式 */
 header {
     text-align: center;
     margin-bottom: 5px;
@@ -29,46 +21,48 @@ h1 {
     margin-bottom: 10px;
 }
 
-/* 网站选择下拉菜单样式 */
-.website-dropdown {
-    font-size: 1.5rem;
-    font-weight: bold;
-    padding: 5px 10px;
-    margin-right: 10px;
-    border-radius: 5px;
-    border: 1px solid #ccc;
-    background-color: #f8f8f8;
-    cursor: pointer;
+/* 布局容器 */
+.container {
+    max-width: 1300px;
+    margin: 0 auto;
+    padding: 0px;
 }
 
-.website-dropdown:focus {
-    outline: none;
-    border-color: #1a5599;
-}
-
-/* 控制面板样式 - 第一块 */
-.controls-container {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 25px;
-    padding: 20px;
+.box-container {
     background-color: white;
     border-radius: 8px;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    padding: 20px;
     margin: 20px 0;
+    overflow: hidden;
 }
 
-/* 统计数据区域 */
+.controls-box {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.chart-box {
+    padding: 20px 20px 60px 20px;
+    height: 350px;
+}
+
+.geo-stats-box {
+    height: 520px;
+}
+
+/* 网站整体统计  */
 .overall-stats {
     display: flex;
+    align-items: left;
     gap: 20px;
 }
 
 .stat-item {
     display: flex;
     flex-direction: column;
-    align-items: flex-start;
+    align-items: baseline;
     margin-right: 25px;
 }
 
@@ -79,14 +73,6 @@ h1 {
 }
 
 .stat-value {
-    font-size: 18px;
-    font-weight: 600;
-    color: #2c3e50;
-}
-
-
-/* 统计数值突出显示 */
-.stat-value.highlight {
     font-size: 1.5rem;
     font-weight: 700;
     color: #2c3e50;
@@ -165,49 +151,6 @@ h1 {
     cursor: not-allowed;
 }
 
-/* 日期范围下拉菜单 */
-#date-range {
-    margin-right: 0px;
-    appearance: none;
-    padding: 10px 20px 10px 15px;
-    border-radius: 4px;
-    border: 1px solid #ddd;
-    background: white url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23333' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") no-repeat right 10px center;
-    cursor: pointer;
-    font-size: 14px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    width: auto;
-    min-width: 120px;
-    max-width: 160px;
-}
-
-#date-range:focus {
-    outline: none;
-    border-color: #007bff;
-    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
-}
-
-/* 图表容器 - 第二块 */
-.chart-container {
-    background-color: white;
-    border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-    padding: 20px 20px 60px 20px;
-    margin-bottom: 0px;
-    height: 350px;
-}
-
-/* 地理统计区域样式 - 第三块 */
-.geo-stats-section {
-    background-color: white;
-    border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-    margin: 20px 0 20px 0;
-    padding: 20px;
-    overflow: hidden;
-    height: 520px;
-}
-
 .geo-stats-content {
     display: grid;
     grid-template-columns: 2fr 1fr;
@@ -232,7 +175,38 @@ h1 {
     margin-bottom: 15px;
 }
 
+/* 下拉菜单*/
+select {
+    font-size: 14px;
+    font-weight: bold;
+    padding: 5px 10px;
+    border-radius: 5px;
+    border: 1px solid #ddd;
+    background-color: #f8f8f8;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    cursor: pointer;
+    width: auto;
+}
 
+select:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+.website-dropdown {
+    font-size: 1.5rem;
+    margin-right: 10px;
+}
+
+.date-range-dropdown {
+    margin-right: 0px;
+    appearance: none;
+    padding: 10px 20px 10px 15px;
+    min-width: 120px;
+    max-width: 160px;
+    background: white url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23333' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") no-repeat right 10px center;
+}
 
 /* 页脚样式 */
 footer {

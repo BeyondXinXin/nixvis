@@ -1,30 +1,64 @@
-package util
+package netparser
 
 import (
 	"bytes"
 	"context"
+	"embed"
 	"fmt"
+	"io/fs"
 	"net"
+	"os"
 	"path/filepath"
 	"time"
 
+	"github.com/beyondxinxin/nixvis/internal/util"
 	"github.com/lionsoul2014/ip2region/binding/golang/xdb"
 	"github.com/sirupsen/logrus"
 )
 
-// IP地理位置信息
-type IPGeoInfo struct {
-	DomesticLoc string
-	GlobalLoc   string
-}
+//go:embed data/ip2region.xdb
+var ipDataFiles embed.FS
 
 var (
 	ipSearcher  *xdb.Searcher
 	vectorIndex []byte
-	dbPath      = filepath.Join(DataDir, "ip2region.xdb")
+	dbPath      = filepath.Join(util.DataDir, "ip2region.xdb")
 )
 
-// 初始化IP地理位置查询
+// ExtractIPRegionDB 从嵌入的文件系统中提取 IP2Region 数据库
+func ExtractIPRegionDB() (string, error) {
+	// 确保数据目录存在
+	if _, err := os.Stat(util.DataDir); os.IsNotExist(err) {
+		if err := os.MkdirAll(util.DataDir, 0755); err != nil {
+			return "", err
+		}
+	}
+
+	// 目标文件路径
+	dbPath := filepath.Join(util.DataDir, "ip2region.xdb")
+
+	// 检查文件是否已存在
+	if _, err := os.Stat(dbPath); err == nil {
+		logrus.Info("IP2Region 数据库已存在，跳过提取")
+		return dbPath, nil
+	}
+
+	// 从嵌入文件系统读取数据
+	data, err := fs.ReadFile(ipDataFiles, "data/ip2region.xdb")
+	if err != nil {
+		return "", err
+	}
+
+	// 写入文件
+	if err := os.WriteFile(dbPath, data, 0644); err != nil {
+		return "", err
+	}
+
+	logrus.Info("IP2Region 数据库已成功提取")
+	return dbPath, nil
+}
+
+// InitIPGeoLocation 初始化 IP 地理位置查询
 func InitIPGeoLocation() error {
 	// 从嵌入的文件系统中提取数据库文件
 	extractedPath, err := ExtractIPRegionDB()
@@ -54,19 +88,19 @@ func InitIPGeoLocation() error {
 	return nil
 }
 
-// GetIPLocation 获取IP的地理位置信息
+// GetIPLocation 获取 IP 的地理位置信息
 func GetIPLocation(ip string) (string, string, error) {
-	// 处理无效IP
+	// 处理无效 IP
 	if ip == "" || ip == "localhost" || ip == "127.0.0.1" {
 		return "本地", "本地", nil
 	}
 
-	// 检查是否是内网IP
+	// 检查是否是内网 IP
 	if isPrivateIP(net.ParseIP(ip)) {
 		return "内网", "本地网络", nil
 	}
 
-	// 缓存未命中，查询数据库
+	// 查询数据库
 	domestic, global, err := queryIPLocation(ip)
 	if err != nil {
 		return "未知", "未知", err
@@ -75,17 +109,17 @@ func GetIPLocation(ip string) (string, string, error) {
 	return domestic, global, nil
 }
 
-// 查询IP地理位置
+// 查询 IP 地理位置
 func queryIPLocation(ip string) (string, string, error) {
 	if ipSearcher == nil {
 		return "未知", "未知", fmt.Errorf("ip2region 未初始化")
 	}
 
-	// 设置50毫秒超时
+	// 设置 50 毫秒超时
 	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
 	defer cancel()
 
-	// 使用channel处理超时
+	// 使用 channel 处理超时
 	resultCh := make(chan struct {
 		region string
 		err    error
@@ -106,7 +140,7 @@ func queryIPLocation(ip string) (string, string, error) {
 	// 等待结果或超时
 	select {
 	case <-ctx.Done():
-		return "未知", "未知", fmt.Errorf("IP查询超时")
+		return "未知", "未知", fmt.Errorf("IP 查询超时")
 	case result := <-resultCh:
 		if result.err != nil {
 			return "未知", "未知", result.err
@@ -117,15 +151,12 @@ func queryIPLocation(ip string) (string, string, error) {
 
 // 解析 ip2region 返回的地区信息
 func parseIPRegion(region string) (string, string, error) {
-	// ip2region 返回格式通常是：国家|区域|省份|城市|ISP
-	// 例如："中国|0|北京|北京|电信"
+	// 返回格式: 国家|区域|省份|城市|ISP
 	parts := splitRegion(region)
-
 	var domestic, global string
 
-	// 处理国内位置
+	// 国内
 	if parts[0] == "中国" {
-		// 国内，精确到省份
 		if parts[2] != "" && parts[2] != "0" {
 			domestic = removeSuffixes(parts[2])
 		} else if parts[3] != "" && parts[3] != "0" {
@@ -135,11 +166,11 @@ func parseIPRegion(region string) (string, string, error) {
 		}
 	} else if parts[0] == "0" || parts[0] == "" {
 		domestic = "未知"
-	} else { // 非中国
+	} else {
 		domestic = "国外"
 	}
 
-	// 处理全球位置
+	// 全球
 	if parts[0] != "0" && parts[0] != "" {
 		global = parts[0]
 	} else {
@@ -149,7 +180,7 @@ func parseIPRegion(region string) (string, string, error) {
 	return domestic, global, nil
 }
 
-// 解析 ip2region 返回的字符串
+// 解析 ip2region
 func splitRegion(region string) []string {
 	parts := make([]string, 5)
 	fields := bytes.Split([]byte(region), []byte("|"))
@@ -161,13 +192,12 @@ func splitRegion(region string) []string {
 	return parts
 }
 
-// 检查是否是内网IP
+// 是否是内网 IP
 func isPrivateIP(ip net.IP) bool {
 	if ip == nil {
 		return false
 	}
 
-	// 检查是否是私有IP段
 	privateIPRanges := []struct {
 		start net.IP
 		end   net.IP
@@ -186,7 +216,7 @@ func isPrivateIP(ip net.IP) bool {
 	return false
 }
 
-// 去掉地区名称中的后缀
+// 去掉地区名称后缀
 func removeSuffixes(name string) string {
 	suffixes := []string{"省", "自治区", "维吾尔自治区", "壮族自治区", "回族自治区", "特别行政区"}
 	for _, suffix := range suffixes {

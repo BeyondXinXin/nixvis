@@ -1,10 +1,11 @@
-package storage
+package stats
 
 import (
 	"fmt"
 	"strings"
 	"time"
 
+	"github.com/beyondxinxin/nixvis/internal/storage"
 	"github.com/beyondxinxin/nixvis/internal/util"
 )
 
@@ -21,11 +22,11 @@ func (s TimeSeriesStats) GetType() string {
 }
 
 type TimeSeriesStatsManager struct {
-	repo *Repository
+	repo *storage.Repository
 }
 
 // NewTimeSeriesStatsManager 创建一个新的 TimeSeriesStatsManager 实例
-func NewTimeSeriesStatsManager(userRepoPtr *Repository) *TimeSeriesStatsManager {
+func NewTimeSeriesStatsManager(userRepoPtr *storage.Repository) *TimeSeriesStatsManager {
 	return &TimeSeriesStatsManager{
 		repo: userRepoPtr,
 	}
@@ -63,7 +64,7 @@ func (s *TimeSeriesStatsManager) statsByTimePointsForWebsite(
 	timeOffset := timePoints[1].Sub(timePoints[0])
 	results := make([]StatPoint, timePointsSize)
 
-	tx, err := s.repo.db.Begin()
+	tx, err := s.repo.GetDB().Begin()
 	if err != nil {
 		return nil, fmt.Errorf("开始事务失败: %v", err)
 	}

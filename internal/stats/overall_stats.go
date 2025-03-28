@@ -1,9 +1,10 @@
-package storage
+package stats
 
 import (
 	"fmt"
 	"time"
 
+	"github.com/beyondxinxin/nixvis/internal/storage"
 	"github.com/beyondxinxin/nixvis/internal/util"
 )
 
@@ -17,11 +18,11 @@ func (s OverallStats) GetType() string {
 }
 
 type OverallStatsManager struct {
-	repo *Repository
+	repo *storage.Repository
 }
 
 // NewOverallStatsManager 创建一个新的 OverallStatsManager 实例
-func NewOverallStatsManager(userRepoPtr *Repository) *OverallStatsManager {
+func NewOverallStatsManager(userRepoPtr *storage.Repository) *OverallStatsManager {
 	return &OverallStatsManager{
 		repo: userRepoPtr,
 	}
@@ -73,7 +74,7 @@ func (s *OverallStatsManager) statsByTimeRangeForWebsite(
 		tableName, websiteID)
 
 	// 执行全范围查询
-	row := s.repo.db.QueryRow(countQuery, startTime.Unix(), endTime.Unix())
+	row := s.repo.GetDB().QueryRow(countQuery, startTime.Unix(), endTime.Unix())
 
 	if err := row.Scan(&overall.PV, &overall.UV, &overall.Traffic); err != nil {
 		return fmt.Errorf("查询总体统计数据失败: %v", err)

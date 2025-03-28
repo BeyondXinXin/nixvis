@@ -86,8 +86,8 @@ async function updateChart() {
                 {
                     label: '访客数(UV)',
                     data: statsData.visitors,
-                    backgroundColor: '#1a5599', // 深蓝色
-                    borderColor: '#1a5599',
+                    backgroundColor: '#4D80CC', // 深蓝色
+                    borderColor: '#4D80CC',
                     borderWidth: 1,
                     stack: 'Stack 0',
                 },

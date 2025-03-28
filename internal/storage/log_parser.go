@@ -11,8 +11,8 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/beyondxinxin/nixvis/internal/netparser"
 	"github.com/beyondxinxin/nixvis/internal/util"
-	"github.com/mileusna/useragent"
 	"github.com/sirupsen/logrus"
 )
 
@@ -247,61 +247,20 @@ func (p *LogParser) parseNginxLogLine(line string) (*NginxLogRecord, error) {
 		return nil, err
 	}
 
-	statusCode, _ := strconv.Atoi(matches[6])
-	bytesSent, _ := strconv.Atoi(matches[7])
 	decodedPath, err := url.QueryUnescape(matches[5])
 	if err != nil {
 		decodedPath = matches[5]
 	}
+	statusCode, _ := strconv.Atoi(matches[6])
+	bytesSent, _ := strconv.Atoi(matches[7])
 	referPath, err := url.QueryUnescape(matches[8])
 	if err != nil {
 		referPath = matches[8]
 	}
 
-	userAgent := useragent.Parse(matches[9])
-	var browser, os, device string
-
-	if userAgent.Bot {
-		browser = "蜘蛛"
-		os = "蜘蛛"
-		device = "蜘蛛"
-	} else {
-		if userAgent.Name != "" {
-			browser = userAgent.Name
-		} else {
-			browser = "桌面设备"
-		}
-
-		if userAgent.OS != "" {
-			os = userAgent.OS
-		} else {
-			os = "其他"
-		}
-
-		if userAgent.Mobile {
-			device = "手机"
-		} else if userAgent.Tablet {
-			device = "平板"
-		} else if userAgent.Desktop {
-			device = "桌面设备"
-		} else {
-			device = "其他"
-		}
-	}
-
-	pageviewFlag := 0
-
-	// pv过滤条件：
-	// status = 200
-	// path 中不含 favicon、sitemap、rss、robots.txt
-	// 开头不含 /_nuxt
-	if statusCode == 200 &&
-		!regexp.MustCompile(`favicon|sitemap|rss|robots.txt`).MatchString(decodedPath) &&
-		!regexp.MustCompile(`^/_nuxt`).MatchString(decodedPath) {
-		pageviewFlag = 1
-	}
-
-	domesticLocation, globalLocation, _ := util.GetIPLocation(matches[1])
+	pageviewFlag := netparser.IsPageView(statusCode, decodedPath)
+	domesticLocation, globalLocation, _ := netparser.GetIPLocation(matches[1])
+	browser, os, device := netparser.ParseUserAgent(matches[9])
 
 	return &NginxLogRecord{
 		ID:               0,

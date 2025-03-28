@@ -19,30 +19,29 @@
             <h1>
                 <select id="website-selector" class="website-dropdown">
                     <option value="">加载中...</option>
-                </select>
-                访问统计
+                </select> 访问统计
             </h1>
         </header>
 
         <!-- 第一块：网站整体统计和时间选择 -->
-        <div class="controls-container">
+        <div class="box-container controls-box">
             <div class="overall-stats">
                 <div class="stat-item">
                     <span class="stat-label">访客数(UV):</span>
-                    <span class="stat-value highlight" id="total-uv">-</span>
+                    <span class="stat-value" id="total-uv">-</span>
                 </div>
                 <div class="stat-item">
                     <span class="stat-label">浏览量(PV):</span>
-                    <span class="stat-value highlight" id="total-pv">-</span>
+                    <span class="stat-value" id="total-pv">-</span>
                 </div>
                 <div class="stat-item">
                     <span class="stat-label">流量:</span>
-                    <span class="stat-value highlight" id="total-traffic">-</span>
+                    <span class="stat-value" id="total-traffic">-</span>
                 </div>
             </div>
 
             <div class="control-options">
-                <select id="date-range">
+                <select id="date-range" class="date-range-dropdown">
                     <option value="today">今天</option>
                     <option value="yesterday">昨天</option>
                     <option value="week">本周</option>
@@ -54,7 +53,7 @@
         </div>
 
         <!-- 第二块：图表展示区 -->
-        <div class="chart-container">
+        <div class="box-container chart-box">
             <div class="chart-controls">
                 <div class="view-toggle">
                     <button class="data-view-toggle-btn active" data-view="hourly">按时</button>
@@ -65,7 +64,7 @@
         </div>
 
         <!-- 第三块：归属地展示区 -->
-        <div class="geo-stats-section">
+        <div class="box-container geo-stats-box">
             <div class="geo-stats-content">
                 <!-- 左侧地图区域 -->
 
@@ -104,7 +103,7 @@
         </div>
 
         <!-- 第四块：排名数据（左右布局） -->
-        <div class="rankings-section">
+        <div class="box-container rankings-section">
             <div class="rankings-content">
                 <!-- 网页排名 -->
                 <div class="ranking-block">
@@ -132,7 +131,7 @@
                         <table id="referer-ranking-table" class="ranking-table">
                             <thead>
                                 <tr>
-                                    <th class="domain-col">域名</th>
+                                    <th class="domain-col">来源域名</th>
                                     <th class="visitor-col">访客</th>
                                 </tr>
                             </thead>
@@ -148,7 +147,7 @@
         </div>
 
         <!-- 第五块：客户端统计（三等分布局） -->
-        <div class="client-stats-section">
+        <div class="box-container client-stats-section">
             <div class="client-stats-content">
                 <!-- 浏览器统计 -->
                 <div class="client-block">

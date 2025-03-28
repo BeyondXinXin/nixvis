@@ -5,7 +5,7 @@ import (
 	"io/fs"
 	"net/http"
 
-	"github.com/beyondxinxin/nixvis/internal/storage"
+	"github.com/beyondxinxin/nixvis/internal/stats"
 	"github.com/beyondxinxin/nixvis/internal/util"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
@@ -14,7 +14,7 @@ import (
 // 初始化Web路由
 func SetupRoutes(
 	router *gin.Engine,
-	statsFactory *storage.StatsFactory) {
+	statsFactory *stats.StatsFactory) {
 
 	// 加载模板
 	tmpl, err := LoadTemplates()
@@ -73,7 +73,7 @@ func SetupRoutes(
 		timeRange := c.Query("timeRange")
 
 		// 构建查询对象
-		query := storage.StatsQuery{
+		query := stats.StatsQuery{
 			WebsiteID:  websiteID,
 			TimeRange:  timeRange,
 			ViewType:   c.DefaultQuery("viewType", ""),

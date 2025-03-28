@@ -168,7 +168,7 @@ function updateGeoRankingTable(data) {
         const row = document.createElement('tr');
         row.innerHTML = `
             <td class="item-path" title="${item.name}">${item.name}</td>
-            <td>${item.value.toLocaleString()}</td>`;
+            <td class="item-count">${item.value.toLocaleString()}</td>`;
         tableBody.appendChild(row);
     });
 }
@@ -181,17 +181,17 @@ async function updateGeoMap() {
 
     if (currentMapView === 'china') {
         const statsData = await fectchLocationStats(currentWebsiteId, range, "domestic", 99)
-        geoData = statsData.url.map((location, index) => ({
+        geoData = statsData.key.map((location, index) => ({
             name: location,
-            value: statsData.url_overall[index].uv
+            value: statsData.uv[index]
         })).filter(item => item.name !== '国外' && item.name !== '未知');
 
         renderChinaMap(geoData);
     } else {
         const statsData = await fectchLocationStats(currentWebsiteId, range, "global", 99)
-        geoData = statsData.url.map((location, index) => ({
+        geoData = statsData.key.map((location, index) => ({
             name: location,
-            value: statsData.url_overall[index].uv
+            value: statsData.uv[index]
 
         })).filter(item => item.name !== '国外' && item.name !== '未知');
 

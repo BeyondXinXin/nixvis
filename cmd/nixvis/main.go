@@ -9,6 +9,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/beyondxinxin/nixvis/internal/netparser"
+	"github.com/beyondxinxin/nixvis/internal/stats"
 	"github.com/beyondxinxin/nixvis/internal/storage"
 	"github.com/beyondxinxin/nixvis/internal/util"
 	"github.com/beyondxinxin/nixvis/internal/web"
@@ -19,7 +21,6 @@ import (
 )
 
 func main() {
-	// 处理配置文件初始化和命令行参数
 	if util.HandleAppConfig() {
 		os.Exit(0) // 如果需要退出，例如生成配置后
 	}
@@ -30,7 +31,7 @@ func main() {
 	defer logrus.Info("------ 服务已安全关闭 ------")
 
 	// 初始化数据库
-	err := util.InitIPGeoLocation()
+	err := netparser.InitIPGeoLocation()
 	if err != nil {
 		return
 	}
@@ -39,7 +40,7 @@ func main() {
 		return
 	}
 	logParser := storage.NewLogParser(repository)
-	statsFactory := storage.NewStatsFactory(repository)
+	statsFactory := stats.NewStatsFactory(repository)
 	defer repository.Close()
 
 	// 初始扫描
@@ -76,7 +77,7 @@ func initScan(parser *storage.LogParser) {
 }
 
 // 启动HTTP服务器
-func startHTTPServer(statsFactory *storage.StatsFactory) {
+func startHTTPServer(statsFactory *stats.StatsFactory) {
 	logrus.Info("****** 3 启动HTTP服务器 ******")
 	cfg := util.ReadConfig()
 	r := setupCORS(statsFactory)
@@ -94,7 +95,7 @@ func startHTTPServer(statsFactory *storage.StatsFactory) {
 }
 
 // setupCORS 配置跨域中间件
-func setupCORS(statsFactory *storage.StatsFactory) *gin.Engine {
+func setupCORS(statsFactory *stats.StatsFactory) *gin.Engine {
 
 	gin.DefaultWriter = logrus.StandardLogger().Writer()
 	gin.SetMode(gin.ReleaseMode)
