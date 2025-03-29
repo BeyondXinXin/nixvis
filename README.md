@@ -1,5 +1,7 @@
 # NixVis
 
+![](https://github.com/BeyondXinXin/nixvis/actions/workflows/ci-linux.yml/badge.svg?branch=main)
+
 NixVis 是一款基于 Go 语言开发的、开源轻量级 Nginx 日志分析工具，专为自部署场景设计。它提供直观的数据可视化和全面的统计分析功能，帮助您实时监控网站流量、访问来源和地理分布等关键指标，无需复杂配置即可快速部署使用。
 
 演示地址 [nixvis.beyondxin](https://nixvis.beyondxin.top/)
