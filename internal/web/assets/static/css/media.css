@@ -1,0 +1,85 @@
+@media (max-width: 1200px) {
+    #geo-ranking-table .region-col {
+        width: 70%;
+    }
+
+    #geo-ranking-table .item-count,
+    #geo-ranking-table .visitor-col {
+        width: 30%;
+        text-align: center;
+    }
+}
+
+@media (max-width: 992px) {
+    #geo-ranking-table .region-col {
+        width: 80%;
+    }
+
+    #geo-ranking-table .item-count,
+    #geo-ranking-table .visitor-col {
+        width: 20%;
+        text-align: center;
+    }
+
+    .geo-stats-content {
+        grid-template-columns: 1fr;
+        gap: 0px;
+    }
+
+    .map-block {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .map-container {
+        display: none;
+    }
+
+    .geo-info-block {
+        margin-top: 0px;
+    }
+
+    .client-stats-content {
+        grid-template-columns: 1fr;
+    }
+
+    .client-block:not(:last-child) {
+        border-right: none;
+        border-bottom: 1px solid #eee;
+    }
+}
+
+@media (max-width: 768px) {
+    .controls-box {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 15px;
+    }
+
+    .overall-stats {
+        justify-content: space-between;
+        width: 100%;
+    }
+
+    .control-options {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .map-container {
+        height: 300px;
+    }
+
+    .rankings-content {
+        grid-template-columns: 1fr;
+    }
+
+    .ranking-block:first-child {
+        border-right: none;
+        border-bottom: 1px solid #eee;
+    }
+
+    #geo-map {
+        height: 300px !important;
+    }
+}

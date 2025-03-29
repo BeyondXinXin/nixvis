@@ -166,24 +166,33 @@ function updateGeoRankingTable(data) {
     // 填充表格数据
     data.forEach((item) => {
         const row = document.createElement('tr');
+        const percentage = item.percentage || 0;
         row.innerHTML = `
             <td class="item-path" title="${item.name}">${item.name}</td>
-            <td class="item-count">${item.value.toLocaleString()}</td>`;
+            <td class="item-count">
+                <div class="bar-container">
+                    <span class="bar-label">${item.value.toLocaleString()}</span>
+                    <div class="bar">
+                        <div class="bar-fill" style="width: ${percentage}%;"></div>
+                        <span class="bar-percentage">${percentage}%</span>
+                    </div>
+                </div>
+            </td>`;
+
         tableBody.appendChild(row);
     });
 }
 
 // 修改 updateGeoMap 函数来同时更新地图和排名表
 async function updateGeoMap() {
-
     let geoData;
-
 
     if (currentMapView === 'china') {
         const statsData = await fectchLocationStats(currentWebsiteId, range, "domestic", 99)
         geoData = statsData.key.map((location, index) => ({
             name: location,
-            value: statsData.uv[index]
+            value: statsData.uv[index],
+            percentage: statsData.uv_percent[index]
         })).filter(item => item.name !== '国外' && item.name !== '未知');
 
         renderChinaMap(geoData);
@@ -191,8 +200,8 @@ async function updateGeoMap() {
         const statsData = await fectchLocationStats(currentWebsiteId, range, "global", 99)
         geoData = statsData.key.map((location, index) => ({
             name: location,
-            value: statsData.uv[index]
-
+            value: statsData.uv[index],
+            percentage: statsData.uv_percent[index]
         })).filter(item => item.name !== '国外' && item.name !== '未知');
 
         renderWorldMap(geoData);

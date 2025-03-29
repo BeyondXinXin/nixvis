@@ -1,0 +1,78 @@
+name: CI-Linux
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      debug_enabled:
+        type: boolean
+        description: "Run the build with tmate debugging enabled"
+        required: false
+        default: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.23.x"
+
+      - name: Run clean script
+        run: |
+          chmod +x ./clean.sh
+          ./clean.sh
+
+      - name: Run package script
+        run: |
+          chmod +x ./package.sh
+          ./package.sh
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: nixvis
+          path: nixvis
+
+  release:
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: nixvis
+
+      - name: Make executable
+        run: chmod +x nixvis
+
+      - name: Delete existing release
+        uses: dev-drprasad/delete-tag-and-release@v1.0
+        with:
+          tag_name: latest
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          delete_release: true
+        continue-on-error: true
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: latest
+          name: Latest Build
+          files: nixvis
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

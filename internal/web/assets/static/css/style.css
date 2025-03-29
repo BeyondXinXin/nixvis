@@ -153,26 +153,40 @@ h1 {
 
 .geo-stats-content {
     display: grid;
-    grid-template-columns: 2fr 1fr;
+    grid-template-columns: 3fr 2fr;
+    gap: 20px;
+    height: 100%;
 }
 
 .map-block {
     width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
 }
 
 .map-container {
     width: 100%;
-    height: 400px;
+    height: 430px;
     position: relative;
+    flex-grow: 1;
+}
+
+#geo-map {
+    width: 100%;
+    height: 100%;
+    min-height: 400px;
 }
 
 .geo-info-block {
     display: flex;
     flex-direction: column;
+    height: 100%;
 }
 
-.geo-controls {
-    margin-bottom: 15px;
+.geo-info-block .table-wrapper {
+    flex-grow: 1;
+    margin-top: 10px;
 }
 
 /* 下拉菜单*/
@@ -211,27 +225,9 @@ select:focus {
 /* 页脚样式 */
 footer {
     text-align: center;
-    padding: 20px 20px 0px 20px;
+    padding: 0px;
     color: #6c757d;
     font-size: 0.9rem;
     border-top: 1px solid #eee;
 }
 
-/* 响应式布局调整 */
-@media (max-width: 768px) {
-    .controls-container {
-        flex-direction: column;
-        align-items: stretch;
-        gap: 15px;
-    }
-
-    .overall-stats {
-        justify-content: space-between;
-        width: 100%;
-    }
-
-    .control-options {
-        width: 100%;
-        justify-content: space-between;
-    }
-}

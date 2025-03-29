@@ -4,7 +4,7 @@ NixVis 是一款基于 Go 语言开发的、开源轻量级 Nginx 日志分析�
 
 演示地址 [nixvis.beyondxin](https://nixvis.beyondxin.top/)
 
-![](https://img.beyondxin.top/2025/202503280611343.png)
+![](https://img.beyondxin.top/2025/202503291600721.png)
 
 ## 功能特点
 
