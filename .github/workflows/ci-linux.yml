@@ -27,6 +27,9 @@ jobs:
         with:
           go-version: "1.23.x"
 
+      - name: Tidy Go modules
+        run: go mod tidy
+
       - name: Run clean script
         run: |
           chmod +x ./clean.sh
