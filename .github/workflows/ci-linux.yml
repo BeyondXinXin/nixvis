@@ -30,11 +30,6 @@ jobs:
       - name: Tidy Go modules
         run: go mod tidy
 
-      - name: Run clean script
-        run: |
-          chmod +x ./clean.sh
-          ./clean.sh
-
       - name: Run package script
         run: |
           chmod +x ./package.sh

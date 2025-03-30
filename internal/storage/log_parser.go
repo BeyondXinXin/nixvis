@@ -53,6 +53,7 @@ func NewLogParser(userRepoPtr *Repository) *LogParser {
 		states:    make(map[string]LogScanState),
 	}
 	parser.loadState()
+	netparser.InitPVFilters()
 	return parser
 }
 

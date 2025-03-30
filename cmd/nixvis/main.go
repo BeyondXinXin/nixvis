@@ -21,8 +21,8 @@ import (
 )
 
 func main() {
-	if util.HandleAppConfig() {
-		os.Exit(0) // 如果需要退出，例如生成配置后
+	if util.ProcessCliCommands() {
+		os.Exit(0)
 	}
 
 	// 初始化日志、配置

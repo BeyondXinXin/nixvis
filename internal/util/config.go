@@ -17,6 +17,12 @@ type Config struct {
 	System   SystemConfig    `json:"system"`
 	Server   ServerConfig    `json:"server"`
 	Websites []WebsiteConfig `json:"websites"`
+	PVFilter PVFilterConfig  `json:"pvFilter"`
+}
+
+type WebsiteConfig struct {
+	Name    string `json:"name"`
+	LogPath string `json:"logPath"`
 }
 
 type SystemConfig struct {
@@ -27,9 +33,9 @@ type ServerConfig struct {
 	Port string `json:"Port"`
 }
 
-type WebsiteConfig struct {
-	Name    string `json:"name"`
-	LogPath string `json:"logPath"`
+type PVFilterConfig struct {
+	StatusCodeInclude []int    `json:"statusCodeInclude"`
+	ExcludePatterns   []string `json:"excludePatterns"`
 }
 
 // ReadRawConfig 读取配置文件但不初始化全局变量

@@ -27,11 +27,6 @@ func LoadTemplates() (*template.Template, error) {
 	// 创建模板并添加函数
 	tmpl := template.New("")
 
-	// 您的自定义函数可以在这里添加
-	tmpl = tmpl.Funcs(template.FuncMap{
-		// 您的自定义函数...
-	})
-
 	// 获取模板子文件系统
 	templateFS, err := fs.Sub(templatesFiles, "assets/templates")
 	if err != nil {
