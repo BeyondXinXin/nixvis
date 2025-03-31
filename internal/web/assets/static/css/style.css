@@ -1,24 +1,42 @@
 /* 基本样式 */
+:root {
+    --bg-color: #f5f5f5;
+    --box-bg: white;
+    --text-color: #333;
+    --header-color: #2c3e50;
+    --border-color: #eee;
+    --shadow-color: rgba(0, 0, 0, 0.1);
+    --highlight-bg: #f8f9fa;
+    --bar-fill: #CCE3ED;
+    --bar-text: #696969cc;
+    --active-btn: #007bff;
+    --active-text: white;
+    --footer-color: #6c757d;
+}
+
+body.dark-mode {
+    --bg-color: #1a1a1a;
+    --box-bg: #2d2d2d;
+    --text-color: #e0e0e0;
+    --header-color: #ffffff;
+    --border-color: #444;
+    --shadow-color: rgba(0, 0, 0, 0.3);
+    --highlight-bg: #3d3d3d;
+    --bar-fill: #516a75;
+    --bar-text: #e0e0e0;
+    --active-btn: #5a9cff;
+    --active-text: white;
+    --footer-color: #aaaaaa;
+}
+
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
     line-height: 1.6;
-    color: #333;
-    background-color: #f5f5f5;
+    color: var(--text-color);
+    background-color: var(--bg-color);
     margin: 0;
     padding: 0;
-}
-
-header {
-    text-align: center;
-    margin-bottom: 5px;
-    border-bottom: 1px solid #eee;
-    padding-bottom: 10px;
-}
-
-h1 {
-    color: #2c3e50;
-    margin-top: 10px;
-    margin-bottom: 10px;
+    transition: background-color 0.3s ease;
 }
 
 /* 布局容器 */
@@ -29,12 +47,13 @@ h1 {
 }
 
 .box-container {
-    background-color: white;
+    background-color: var(--box-bg);
     border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 10px var(--shadow-color);
     padding: 20px;
     margin: 20px 0;
     overflow: hidden;
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
 }
 
 .controls-box {
@@ -49,7 +68,7 @@ h1 {
 }
 
 .geo-stats-box {
-    height: 520px;
+    height: 620px;
 }
 
 /* 网站整体统计  */
@@ -68,14 +87,15 @@ h1 {
 
 .stat-label {
     font-size: 13px;
-    color: #666;
+    color: var(--text-color);
+    opacity: 0.8;
     font-weight: 600;
 }
 
 .stat-value {
     font-size: 1.5rem;
     font-weight: 700;
-    color: #2c3e50;
+    color: var(--header-color);
     margin-left: 8px;
     display: inline-block;
     min-width: 60px;
@@ -86,6 +106,7 @@ h1 {
     display: flex;
     align-items: center;
     justify-content: flex-end;
+    gap: 10px;
 }
 
 /* 视图切换容器 */
@@ -97,8 +118,9 @@ h1 {
 /* 切换按钮样式 */
 .data-view-toggle-btn {
     padding: 8px 16px;
-    border: 1px solid #ddd;
-    background-color: white;
+    border: 1px solid var(--border-color);
+    background-color: var(--box-bg);
+    color: var(--text-color);
     cursor: pointer;
     transition: all 0.2s;
     font-size: 14px;
@@ -113,9 +135,9 @@ h1 {
 }
 
 .data-view-toggle-btn.active {
-    background-color: #007bff;
-    color: white;
-    border-color: #007bff;
+    background-color: var(--active-btn);
+    color: var(--active-text);
+    border-color: var(--active-btn);
 }
 
 .data-view-toggle-btn.disabled {
@@ -125,8 +147,9 @@ h1 {
 
 .data-map-toggle-btn {
     padding: 8px 16px;
-    border: 1px solid #ddd;
-    background-color: white;
+    border: 1px solid var(--border-color);
+    background-color: var(--box-bg);
+    color: var(--text-color);
     cursor: pointer;
     transition: all 0.2s;
     font-size: 14px;
@@ -141,9 +164,9 @@ h1 {
 }
 
 .data-map-toggle-btn.active {
-    background-color: #007bff;
-    color: white;
-    border-color: #007bff;
+    background-color: var(--active-btn);
+    color: var(--active-text);
+    border-color: var(--active-btn);
 }
 
 .data-map-toggle-btn.disabled {
@@ -195,16 +218,18 @@ select {
     font-weight: bold;
     padding: 5px 10px;
     border-radius: 5px;
-    border: 1px solid #ddd;
-    background-color: #f8f8f8;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    border: 1px solid var(--border-color);
+    background-color: var(--box-bg);
+    color: var(--text-color);
+    box-shadow: 0 1px 3px var(--shadow-color);
     cursor: pointer;
     width: auto;
+    transition: border-color 0.3s, box-shadow 0.3s;
 }
 
 select:focus {
     outline: none;
-    border-color: #007bff;
+    border-color: var(--active-btn);
     box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
 }
 
@@ -219,15 +244,84 @@ select:focus {
     padding: 10px 20px 10px 15px;
     min-width: 120px;
     max-width: 160px;
-    background: white url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23333' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") no-repeat right 10px center;
+    background: var(--box-bg) url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23333' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") no-repeat right 10px center;
+}
+
+.header-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    padding: 0;
+    position: relative;
+    min-height: 80px;
+    text-align: center;
+}
+
+header h1 {
+    margin: 10px 0;
+    display: flex;
+    align-items: center;
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    white-space: nowrap;
+    z-index: 1;
+    color: var(--header-color);
+    font-size: 1.5rem;
+    font-weight: bold;
+}
+
+/* 主题切换按钮样式 */
+.theme-toggle {
+    background-color: transparent;
+    border: none;
+    cursor: pointer;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.3s;
+    margin-left: auto;
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+.theme-toggle:hover {
+    background-color: var(--highlight-bg);
+}
+
+.theme-toggle .light-icon,
+.theme-toggle .dark-icon {
+    font-size: 18px;
+}
+
+.theme-toggle .light-icon {
+    display: block;
+}
+
+.theme-toggle .dark-icon {
+    display: none;
+}
+
+/* 当处于深色模式时 */
+body.dark-mode .theme-toggle .light-icon {
+    display: none;
+}
+
+body.dark-mode .theme-toggle .dark-icon {
+    display: block;
 }
 
 /* 页脚样式 */
 footer {
     text-align: center;
     padding: 0px;
-    color: #6c757d;
+    color: var(--footer-color);
     font-size: 0.9rem;
-    border-top: 1px solid #eee;
+    border-top: 1px solid var(--border-color);
 }
-

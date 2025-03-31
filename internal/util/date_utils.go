@@ -33,7 +33,7 @@ func TimePeriod(timeRange string) (time.Time, time.Time, error) {
 	return startTime, endTime, nil
 }
 
-// TimePoints 根据时间范围类型和视图类型直接返回时间点数组和标签数组
+// TimePointsAndLabels 根据时间范围类型和视图类型直接返回时间点数组和标签数组
 func TimePointsAndLabels(
 	timeRangeType string, viewType string) ([]time.Time, []string) {
 

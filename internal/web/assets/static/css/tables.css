@@ -15,25 +15,25 @@
 .ranking-table td {
     padding: 12px 10px;
     text-align: left;
-    border-bottom: 1px solid #eee;
+    border-bottom: 1px solid var(--border-color);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
 .ranking-table th {
-    background-color: #f8f9fa;
-    color: #495057;
+    background-color: var(--highlight-bg);
+    color: var(--text-color);
     font-weight: 600;
 }
 
 .ranking-table tbody tr:hover {
-    background-color: #f8f9fa;
+    background-color: var(--highlight-bg);
 }
 
 .loading-row td {
     text-align: center;
-    color: #6c757d;
+    color: var(--footer-color);
 }
 
 #geo-ranking-table .region-col {
@@ -79,9 +79,8 @@
 }
 
 .ranking-block:first-child {
-    border-right: 1px solid #eee;
+    border-right: 1px solid var(--border-color);
 }
-
 
 .client-stats-content {
     display: grid;
@@ -89,7 +88,7 @@
 }
 
 .client-block:not(:last-child) {
-    border-right: 1px solid #eee;
+    border-right: 1px solid var(--border-color);
 }
 
 .bar-container {
@@ -100,7 +99,7 @@
 
 .bar-label {
     font-size: 14px;
-    color: #333;
+    color: var(--text-color);
     width: 45%;
     text-align: right;
     font-weight: bold;
@@ -114,12 +113,12 @@
     overflow: hidden;
     margin-left: 6px;
     border: 0px;
-    border-left: 1px solid #8E8E8E;
+    border-left: 1px solid var(--border-color);
 }
 
 .bar-fill {
     height: 100%;
-    background-color: #CCE3ED;
+    background-color: var(--bar-fill);
 }
 
 .bar-percentage {
@@ -128,6 +127,6 @@
     left: 50%;
     transform: translate(-50%, -50%);
     font-size: 16px;
-    color: #696969cc;
+    color: var(--bar-text);
     white-space: nowrap;
 }

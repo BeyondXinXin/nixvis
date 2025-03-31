@@ -2,6 +2,10 @@ import {
     fectchLocationStats,
 } from './api.js';
 
+import {
+    updateChartsTheme,
+} from './theme.js';
+
 // 初始化地图实例
 let geoMapChart = null;
 let currentMapView = 'china'; // 默认显示中国地图
@@ -27,6 +31,7 @@ export function initGeoMap() {
 
     // 初始化ECharts实例
     geoMapChart = echarts.init(document.getElementById('geo-map'));
+    window.geoMapChart = geoMapChart; // 方便调试时使用
 
     // 绑定地图视图切换事件
     bindMapViewToggle();
@@ -67,13 +72,11 @@ function renderChinaMap(geoData) {
             }
         },
         visualMap: {
-            min: 0,
+            backgroundColor: 'transparent',
+            min: -5,
             max: maxValue,
             left: 'left',
             bottom: '10%',
-            inRange: {
-                color: ['#e0ffff', '#006edd']
-            },
             calculable: false
         },
         geo: {
@@ -123,13 +126,11 @@ function renderWorldMap(geoData) {
             }
         },
         visualMap: {
-            min: 0,
+            backgroundColor: 'transparent',
+            min: -5,
             max: maxValue,
             left: 'left',
             bottom: '10%',
-            inRange: {
-                color: ['#e0ffff', '#006edd']
-            },
             calculable: false
         },
         series: [{
@@ -206,6 +207,7 @@ async function updateGeoMap() {
 
         renderWorldMap(geoData);
     }
+    updateChartsTheme();
 
     // 更新地区排名表格,去前10
     geoData = geoData.slice(0, 10);

@@ -16,15 +16,19 @@
 
 <body>
     <div class="container">
-        <header>
+        <header class="header-container">
             <h1>
                 <select id="website-selector" class="website-dropdown">
                     <option value="">加载中...</option>
                 </select> 访问统计
             </h1>
+            <button id="theme-toggle" class="theme-toggle" title="切换主题">
+                <span class="light-icon">🌙</span>
+                <span class="dark-icon">☀️</span>
+            </button>
         </header>
 
-        <!-- 第一块：网站整体统计和时间选择 -->
+        <!-- 网站整体统计和时间选择 -->
         <div class="box-container controls-box">
             <div class="overall-stats">
                 <div class="stat-item">
@@ -53,7 +57,7 @@
             </div>
         </div>
 
-        <!-- 第三块：图表展示区 -->
+        <!-- 图表展示区 -->
         <div class="box-container chart-box">
             <div class="chart-controls">
                 <div class="view-toggle">
@@ -65,7 +69,7 @@
         </div>
 
 
-        <!-- 第四块：排名数据（左右布局） -->
+        <!-- 排名数据（左右布局） -->
         <div class="box-container rankings-section">
             <div class="rankings-content">
                 <!-- 网页排名 -->
@@ -109,7 +113,7 @@
             </div>
         </div>
 
-        <!-- 第五块：客户端统计（三等分布局） -->
+        <!-- 客户端统计（三等分布局） -->
         <div class="box-container client-stats-section">
             <div class="client-stats-content">
                 <!-- 浏览器统计 -->
@@ -172,7 +176,7 @@
         </div>
 
 
-        <!-- 第二块：归属地展示区 -->
+        <!-- 归属地展示区 -->
         <div class="box-container geo-stats-box">
             <div class="geo-stats-content">
                 <!-- 左侧地图区域 -->

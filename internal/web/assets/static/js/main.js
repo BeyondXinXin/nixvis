@@ -34,6 +34,10 @@ import {
     formatTraffic,
 } from './utils.js';
 
+import {
+    initThemeManager,
+} from './theme.js';
+
 // 模块级变量
 let websiteSelector = null;
 let dateRange = null;
@@ -45,6 +49,7 @@ function initApp() {
     websiteSelector = document.getElementById('website-selector');
     dateRange = document.getElementById('date-range');
 
+    initThemeManager(); // 初始化主题
     initChart(); // 初始化图表
     initGeoMap(); // 初始化地图
     initSites(); // 初始化网站选择器并绑定回调
@@ -117,11 +122,11 @@ async function refreshData() {
 // 更新整体统计数据
 function updateOverallStats(overall) {
     // 格式化流量显示
-    const trafficDisplay = formatTraffic(overall.overall.traffic);
+    const trafficDisplay = formatTraffic(overall.traffic);
 
     // 更新DOM
-    document.getElementById('total-uv').textContent = overall.overall.uv.toLocaleString();
-    document.getElementById('total-pv').textContent = overall.overall.pv.toLocaleString();
+    document.getElementById('total-uv').textContent = overall.uv.toLocaleString();
+    document.getElementById('total-pv').textContent = overall.pv.toLocaleString();
     document.getElementById('total-traffic').textContent = trafficDisplay;
 }
 

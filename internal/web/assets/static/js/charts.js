@@ -86,16 +86,16 @@ async function updateChart() {
                 {
                     label: '访客数(UV)',
                     data: statsData.visitors,
-                    backgroundColor: '#6F9DEB', // 深蓝色
-                    borderColor: '#6F9DEB',
+                    backgroundColor: '#4a6fff', // 深蓝色 97,147,234
+                    borderColor: '#4a6fff',
                     borderWidth: 1,
                     stack: 'Stack 0',
                 },
                 {
                     label: '浏览量(PV)',  // 修改标签名称，更清晰
                     data: pvMinusUv,     // 初始时仍然使用差值
-                    backgroundColor: '#7fb9ffbb', // 淡蓝色
-                    borderColor: '#7fb9ff',
+                    backgroundColor: '#83c9f9', // 淡蓝色
+                    borderColor: '#83c9f9',
                     borderWidth: 1,
                     stack: 'Stack 0',
                     // 存储原始完整PV值，用于切换显示

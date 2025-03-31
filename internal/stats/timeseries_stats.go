@@ -9,6 +9,11 @@ import (
 	"github.com/beyondxinxin/nixvis/internal/util"
 )
 
+type StatPoint struct {
+	PV int `json:"pv"` // 页面浏览量
+	UV int `json:"uv"` // 独立访客数
+}
+
 type TimeSeriesStats struct {
 	Labels    []string `json:"labels"`
 	Visitors  []int    `json:"visitors"`
@@ -89,8 +94,7 @@ func (s *TimeSeriesStatsManager) statsByTimePointsForWebsite(
         SELECT 
             tr.range_index,
             COUNT(l.pageview_flag) as pv,
-            COUNT(DISTINCT l.ip) as uv,
-            COALESCE(SUM(l.bytes_sent), 0) as traffic
+            COUNT(DISTINCT l.ip) as uv
         FROM time_ranges tr
         LEFT JOIN "%s" l INDEXED BY idx_%s_pv_ts_ip
             ON l.pageview_flag = 1 AND l.timestamp >= tr.start_time AND l.timestamp < tr.end_time
@@ -107,7 +111,7 @@ func (s *TimeSeriesStatsManager) statsByTimePointsForWebsite(
 	i := 0
 	for rows.Next() {
 		var rangeIdx int
-		if err := rows.Scan(&rangeIdx, &results[i].PV, &results[i].UV, &results[i].Traffic); err != nil {
+		if err := rows.Scan(&rangeIdx, &results[i].PV, &results[i].UV); err != nil {
 			return nil, fmt.Errorf("读取查询结果失败: %v", err)
 		}
 		i++

@@ -9,7 +9,9 @@ import (
 )
 
 type OverallStats struct {
-	Overall StatPoint `json:"overall"`
+	PV      int   `json:"pv"`      // 页面浏览量
+	UV      int   `json:"uv"`      // 独立访客数
+	Traffic int64 `json:"traffic"` // 流量（字节）
 }
 
 // OverallStats 实现 StatsResult 接口
@@ -32,11 +34,9 @@ func NewOverallStatsManager(userRepoPtr *storage.Repository) *OverallStatsManage
 func (s *OverallStatsManager) Query(query StatsQuery) (StatsResult, error) {
 
 	result := OverallStats{
-		Overall: StatPoint{
-			PV:      0,
-			UV:      0,
-			Traffic: 0,
-		},
+		PV:      0,
+		UV:      0,
+		Traffic: 0,
 	}
 
 	startTime, endTime, err := util.TimePeriod(query.TimeRange)
@@ -44,7 +44,7 @@ func (s *OverallStatsManager) Query(query StatsQuery) (StatsResult, error) {
 		return result, err
 	}
 
-	err = s.statsByTimeRangeForWebsite(query.WebsiteID, startTime, endTime, &result.Overall)
+	err = s.statsByTimeRangeForWebsite(query.WebsiteID, startTime, endTime, &result)
 	if err != nil {
 		return result, fmt.Errorf("获取总体统计失败: %v", err)
 	}
@@ -54,7 +54,7 @@ func (s *OverallStatsManager) Query(query StatsQuery) (StatsResult, error) {
 
 // StatsByTimePoints 直接使用 db.Query() 方法查询数据库获取指定时间点的统计数据
 func (s *OverallStatsManager) statsByTimeRangeForWebsite(
-	websiteID string, startTime, endTime time.Time, overall *StatPoint) error {
+	websiteID string, startTime, endTime time.Time, overall *OverallStats) error {
 
 	// 初始化结果
 	overall.PV = 0

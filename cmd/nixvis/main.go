@@ -27,7 +27,10 @@ func main() {
 
 	// 初始化日志、配置
 	util.ConfigureLogging()
+
 	logrus.Info("------ 服务启动成功 ------")
+	// 在 main 函数中的适当位置添加
+	logrus.Infof("构建时间: %s, Git提交: %s", util.BuildTime, util.GitCommit)
 	defer logrus.Info("------ 服务已安全关闭 ------")
 
 	// 初始化数据库
@@ -39,6 +42,7 @@ func main() {
 	if err != nil {
 		return
 	}
+
 	logParser := storage.NewLogParser(repository)
 	statsFactory := stats.NewStatsFactory(repository)
 	defer repository.Close()
@@ -139,11 +143,12 @@ func startPeriodicTaskScheduler(logParser *storage.LogParser) {
 	<-shutdownCtx.Done()
 }
 
-// runPeriodicTaskScheduler 运行周期性任务（每5分钟）
+// runPeriodicTaskScheduler 运行周期性任务
 func runPeriodicTaskScheduler(
 	ctx context.Context, parser *storage.LogParser) {
 
-	interval := 5 * time.Minute
+	cfg := util.ReadConfig()
+	interval := util.ParseInterval(cfg.System.TaskInterval, 5*time.Minute)
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 

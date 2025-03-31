@@ -1,19 +1,7 @@
 name: CI-Linux
 
 on:
-  push:
-    branches:
-      - main
-  pull_request:
-    branches:
-      - main
   workflow_dispatch:
-    inputs:
-      debug_enabled:
-        type: boolean
-        description: "Run the build with tmate debugging enabled"
-        required: false
-        default: false
 
 jobs:
   build:
@@ -56,7 +44,7 @@ jobs:
       - name: Make executable
         run: chmod +x nixvis
 
-      - name: Delete existing release
+      - name: Delete existing release and tag
         uses: dev-drprasad/delete-tag-and-release@v1.0
         with:
           tag_name: latest

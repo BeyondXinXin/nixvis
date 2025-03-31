@@ -6,6 +6,9 @@ import (
 	"encoding/json"
 	"os"
 	"sync"
+	"time"
+
+	"github.com/sirupsen/logrus"
 )
 
 var (
@@ -27,6 +30,7 @@ type WebsiteConfig struct {
 
 type SystemConfig struct {
 	LogDestination string `json:"logDestination"`
+	TaskInterval   string `json:"taskInterval"` // "5m" "25s"
 }
 
 type ServerConfig struct {
@@ -75,18 +79,12 @@ func ReadConfig() *Config {
 
 	// 初始化 ID 映射
 	for _, website := range cfg.Websites {
-		id := GenerateID(website.LogPath)
+		id := generateID(website.LogPath)
 		websiteIDMap.Store(id, website) // 以 ID 为键存储 WebsiteConfig
 	}
 
 	globalConfig = cfg
 	return globalConfig
-}
-
-// GenerateID 根据输入字符串生成唯一 ID
-func GenerateID(input string) string {
-	hash := md5.Sum([]byte(input))
-	return hex.EncodeToString(hash[:2])
 }
 
 // GetWebsiteByID 根据 ID 获取对应的 WebsiteConfig
@@ -106,4 +104,34 @@ func GetAllWebsiteIDs() []string {
 		return true
 	})
 	return ids
+}
+
+// ParseInterval 解析间隔配置字符串，支持分钟(m)和秒(s)单位
+func ParseInterval(intervalStr string, defaultInterval time.Duration) time.Duration {
+	if intervalStr == "" {
+		return defaultInterval
+	}
+
+	// 尝试解析配置的时间间隔
+	duration, err := time.ParseDuration(intervalStr)
+	if err != nil {
+		logrus.WithField("interval", intervalStr).Info(
+			"无效的时间间隔配置，使用默认值")
+		return defaultInterval
+	}
+
+	minInterval := 5 * time.Second
+	if duration < minInterval {
+		logrus.WithField("interval", intervalStr).Info(
+			"配置的时间间隔过短，已调整为最小值5秒")
+		return minInterval
+	}
+
+	return duration
+}
+
+// generateID 根据输入字符串生成唯一 ID
+func generateID(input string) string {
+	hash := md5.Sum([]byte(input))
+	return hex.EncodeToString(hash[:2])
 }

@@ -6,14 +6,8 @@ import (
 	"time"
 
 	"github.com/beyondxinxin/nixvis/internal/storage"
+	"github.com/beyondxinxin/nixvis/internal/util"
 )
-
-// StatPoint 通用的统计点数据结构
-type StatPoint struct {
-	PV      int   `json:"pv"`      // 页面浏览量
-	UV      int   `json:"uv"`      // 独立访客数
-	Traffic int64 `json:"traffic"` // 流量（字节）
-}
 
 // StatsResult 统计结果的基础接口
 type StatsResult interface {
@@ -35,23 +29,26 @@ type StatsManager interface {
 
 // StatsFactory 统计工厂，管理所有统计管理器
 type StatsFactory struct {
-	repo     *storage.Repository
-	managers map[string]StatsManager
-	cache    *StatsCache
-	mu       sync.RWMutex
+	repo        *storage.Repository
+	managers    map[string]StatsManager
+	cache       *StatsCache
+	mu          sync.RWMutex
+	cacheExpiry time.Duration
 }
 
 // NewStatsFactory 创建新的统计工厂
 func NewStatsFactory(repo *storage.Repository) *StatsFactory {
+	cfg := util.ReadConfig()
+	expiry := util.ParseInterval(cfg.System.TaskInterval, 5*time.Minute)
+
 	factory := &StatsFactory{
-		repo:     repo,
-		managers: make(map[string]StatsManager),
-		cache:    NewStatsCache(),
+		repo:        repo,
+		managers:    make(map[string]StatsManager),
+		cache:       NewStatsCache(),
+		cacheExpiry: expiry,
 	}
 
-	// 注册默认的统计管理器
 	factory.registerDefaultManagers()
-
 	return factory
 }
 
@@ -89,7 +86,7 @@ func (f *StatsFactory) QueryStats(managerType string, query StatsQuery) (StatsRe
 	cacheKey := f.buildCacheKey(managerType, query)
 
 	// 尝试从缓存获取
-	if cachedResult, ok := f.cache.Get(cacheKey, 5*time.Minute); ok {
+	if cachedResult, ok := f.cache.Get(cacheKey, f.cacheExpiry); ok {
 		return cachedResult.(StatsResult), nil
 	}
 

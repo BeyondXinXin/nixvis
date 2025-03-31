@@ -10,6 +10,11 @@ import (
 	"syscall"
 )
 
+var (
+	BuildTime = "unknown"
+	GitCommit = "unknown"
+)
+
 const (
 	DataDir    = "./nixvis_data"
 	ConfigFile = "./nixvis_config.json"
@@ -20,7 +25,14 @@ func ProcessCliCommands() bool {
 	// 命令行参数
 	genConfig := flag.Bool("gen-config", false, "生成配置文件并退出")
 	cleanApp := flag.Bool("clean", false, "清理nixvis服务、释放端口和删除数据")
+	showVer := flag.Bool("v", false, "显示版本信息")
 	flag.Parse()
+
+	// 显示版本信息
+	if *showVer {
+		showVersion()
+		return true
+	}
 
 	// 清理服务
 	if *cleanApp {
@@ -45,6 +57,12 @@ func ProcessCliCommands() bool {
 
 	// 不需要退出，继续运行
 	return false
+}
+
+// showVersion 显示版本信息
+func showVersion() {
+	fmt.Printf("构建时间: %s\n", BuildTime)
+	fmt.Printf("Git 提交: %s\n", GitCommit)
 }
 
 func initConfig(genConfig bool) bool {
@@ -96,7 +114,8 @@ func writeDefaultConfig() error {
     }
   ],
   "system": {
-    "logDestination": "file"
+    "logDestination": "file",
+	"taskInterval": "5m"
   },
   "server": {
     "Port": ":8088"
@@ -172,7 +191,7 @@ func validateConfig() bool {
 	return false
 }
 
-// cleanService 清理nixvis服务、释放端口和删除数据
+// cleanService 清理 nixvis 服务、释放端口和删除数据
 func cleanService() {
 	fmt.Println("开始清理nixvis服务...")
 
