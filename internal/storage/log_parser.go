@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/beyondxinxin/nixvis/internal/netparser"
@@ -30,21 +31,22 @@ type ParserResult struct {
 	Error        error
 }
 
-// 保存日志扫描的状态
 type LogScanState struct {
-	LastOffset int64     `json:"last_offset"`
-	LastSize   int64     `json:"last_size"`
-	LastScan   time.Time `json:"last_scan"`
+	Files map[string]FileState `json:"files"` // 每个文件的状态
 }
 
-// 用于处理Nginx日志
+type FileState struct {
+	LastOffset int64 `json:"last_offset"`
+	LastSize   int64 `json:"last_size"`
+}
+
 type LogParser struct {
 	repo      *Repository
 	statePath string
 	states    map[string]LogScanState // 各网站的扫描状态，以网站ID为键
 }
 
-// 创建新的日志解析器
+// NewLogParser 创建新的日志解析器
 func NewLogParser(userRepoPtr *Repository) *LogParser {
 	statePath := filepath.Join(util.DataDir, "nginx_scan_state.json")
 	parser := &LogParser{
@@ -57,43 +59,7 @@ func NewLogParser(userRepoPtr *Repository) *LogParser {
 	return parser
 }
 
-// 增量扫描Nginx日志文件
-func (p *LogParser) ScanNginxLogs() []ParserResult {
-	// 获取所有网站ID
-	websiteIDs := util.GetAllWebsiteIDs()
-	parserResults := make([]ParserResult, len(websiteIDs))
-
-	for i, id := range websiteIDs {
-		startTime := time.Now()
-
-		website, _ := util.GetWebsiteByID(id)
-		parserResult := EmptyParserResult(website.Name, id)
-
-		p.scanFile(id, website.LogPath, &parserResult)
-
-		parserResult.Duration = time.Since(startTime)
-		parserResults[i] = parserResult
-	}
-
-	// 2. 更新并保存状态
-	p.updateState()
-
-	return parserResults
-}
-
-// 生成空结果
-func EmptyParserResult(name, id string) ParserResult {
-	return ParserResult{
-		WebName:      name,
-		WebID:        id,
-		TotalEntries: 0,
-		Duration:     0,
-		Success:      true,
-		Error:        nil,
-	}
-}
-
-// 加载上次扫描状态
+// loadState 加载上次扫描状态
 func (p *LogParser) loadState() {
 	data, err := os.ReadFile(p.statePath)
 	if os.IsNotExist(err) {
@@ -114,13 +80,68 @@ func (p *LogParser) loadState() {
 	}
 }
 
-// 打开并扫描日志文件
-func (p *LogParser) scanFile(websiteID string, logPath string, parserResult *ParserResult) {
+// updateState 更新并保存状态
+func (p *LogParser) updateState() {
+	data, err := json.Marshal(p.states)
+	if err != nil {
+		logrus.Errorf("保存扫描状态失败: %v", err)
+		return
+	}
+
+	if err := os.WriteFile(p.statePath, data, 0644); err != nil {
+		logrus.Errorf("保存扫描状态失败: %v", err)
+	}
+}
+
+// ScanNginxLogs 增量扫描Nginx日志文件
+func (p *LogParser) ScanNginxLogs() []ParserResult {
+	// 获取所有网站ID
+	websiteIDs := util.GetAllWebsiteIDs()
+	parserResults := make([]ParserResult, len(websiteIDs))
+
+	for i, id := range websiteIDs {
+		startTime := time.Now()
+
+		website, _ := util.GetWebsiteByID(id)
+		parserResult := EmptyParserResult(website.Name, id)
+
+		logPath := website.LogPath
+		if strings.Contains(logPath, "*") {
+			matches, err := filepath.Glob(logPath)
+			if err != nil {
+				errstr := "解析日志路径模式 " + logPath + " 失败: " + err.Error()
+				parserResult.Success = false
+				parserResult.Error = errors.New(errstr)
+			} else if len(matches) == 0 {
+				errstr := "日志路径模式 " + logPath + " 未匹配到任何文件"
+				parserResult.Success = false
+				parserResult.Error = errors.New(errstr)
+			} else {
+				for _, matchPath := range matches {
+					p.scanSingleFile(id, matchPath, &parserResult)
+				}
+			}
+		} else {
+			p.scanSingleFile(id, logPath, &parserResult)
+		}
+
+		parserResult.Duration = time.Since(startTime)
+		parserResults[i] = parserResult
+	}
+
+	// 2. 更新并保存状态
+	p.updateState()
+
+	return parserResults
+}
+
+// scanSingleFile 扫描单个日志文件
+func (p *LogParser) scanSingleFile(
+	websiteID string, logPath string, parserResult *ParserResult) {
 	// 打开文件
 	file, err := os.Open(logPath)
 	if err != nil {
-		parserResult.Success = false
-		parserResult.Error = err
+		logrus.Errorf("无法打开日志文件 %s: %v", logPath, err)
 		return
 	}
 	defer file.Close()
@@ -128,62 +149,94 @@ func (p *LogParser) scanFile(websiteID string, logPath string, parserResult *Par
 	// 获取文件信息
 	fileInfo, err := file.Stat()
 	if err != nil {
-		parserResult.Success = false
-		parserResult.Error = err
+		logrus.Errorf("无法获取文件信息 %s: %v", logPath, err)
 		return
 	}
 
 	// 确定扫描起始位置
 	currentSize := fileInfo.Size()
-	startOffset := p.determineStartOffset(websiteID, currentSize)
+	startOffset := p.determineStartOffset(websiteID, logPath, currentSize)
 
 	// 设置读取位置
 	_, err = file.Seek(startOffset, 0)
 	if err != nil {
-		parserResult.Success = false
-		parserResult.Error = err
+		logrus.Errorf("无法设置文件读取位置 %s: %v", logPath, err)
 		return
 	}
 
 	// 读取并解析日志
-	p.parseLogLines(file, websiteID, parserResult)
+	entriesCount := p.parseLogLines(file, websiteID, parserResult)
 
-	// 更新状态（但不保存）
-	state := p.states[websiteID]
-	state.LastOffset = currentSize
-	state.LastSize = currentSize
-	state.LastScan = time.Now()
+	// 更新文件状态
+	p.updateFileState(websiteID, logPath, currentSize)
+
+	logrus.Infof("网站 %s 的日志文件 %s 扫描完成，解析了 %d 条记录",
+		websiteID, logPath, entriesCount)
+}
+
+// updateFileState 更新文件状态
+func (p *LogParser) updateFileState(
+	websiteID string, filePath string, currentSize int64) {
+	state, ok := p.states[websiteID]
+	if !ok {
+		state = LogScanState{
+			Files: make(map[string]FileState),
+		}
+	}
+
+	if state.Files == nil {
+		state.Files = make(map[string]FileState)
+	}
+
+	fileState := FileState{
+		LastOffset: currentSize,
+		LastSize:   currentSize,
+	}
+
+	state.Files[filePath] = fileState
 	p.states[websiteID] = state
 }
 
-// 确定扫描起始位置
-func (p *LogParser) determineStartOffset(websiteID string, currentSize int64) int64 {
+// determineStartOffset 确定扫描起始位置
+func (p *LogParser) determineStartOffset(
+	websiteID string, filePath string, currentSize int64) int64 {
+
 	state, ok := p.states[websiteID]
-	if !ok {
-		// 如果该网站没有扫描记录，创建新状态并从头开始扫描
+	if !ok { // 网站没有扫描记录，创建新状态
 		p.states[websiteID] = LogScanState{
-			LastOffset: 0,
-			LastSize:   0,
-			LastScan:   time.Now(),
+			Files: make(map[string]FileState),
 		}
 		return 0
 	}
 
-	// 检测文件是否被轮转（当前大小小于上次记录的大小）
-	if currentSize < state.LastSize {
-		logrus.Infof("检测到网站 %s 的日志文件已被轮转，从头开始扫描", websiteID)
+	if state.Files == nil {
+		state.Files = make(map[string]FileState)
+		p.states[websiteID] = state
 		return 0
 	}
-	return state.LastOffset
+
+	fileState, ok := state.Files[filePath]
+	if !ok {
+		return 0
+	}
+
+	// 文件是否被轮转
+	if currentSize < fileState.LastSize {
+		logrus.Infof("检测到网站 %s 的日志文件 %s 已被轮转，从头开始扫描", websiteID, filePath)
+		return 0
+	}
+
+	return fileState.LastOffset
 }
 
-// 解析日志行
-func (p *LogParser) parseLogLines(file *os.File, websiteID string, parserResult *ParserResult) {
+// parseLogLines 解析日志行并返回解析的记录数
+func (p *LogParser) parseLogLines(
+	file *os.File, websiteID string, parserResult *ParserResult) int {
 	scanner := bufio.NewScanner(file)
-	sumEntries := 0
+	entriesCount := 0
 
 	// 批量插入相关
-	const batchSize = 100 // 可以调整批量大小
+	const batchSize = 100
 	batch := make([]NginxLogRecord, 0, batchSize)
 
 	// 处理一批数据
@@ -207,7 +260,9 @@ func (p *LogParser) parseLogLines(file *os.File, websiteID string, parserResult 
 			continue
 		}
 		batch = append(batch, *entry)
-		sumEntries++
+		entriesCount++
+		parserResult.TotalEntries++ // 累加到总结果中，而非赋值
+
 		if len(batch) >= batchSize {
 			processBatch()
 		}
@@ -219,23 +274,10 @@ func (p *LogParser) parseLogLines(file *os.File, websiteID string, parserResult 
 		logrus.Errorf("扫描网站 %s 的文件时出错: %v", websiteID, err)
 	}
 
-	parserResult.TotalEntries = sumEntries
+	return entriesCount // 返回当前文件的日志条数
 }
 
-// 更新并保存状态
-func (p *LogParser) updateState() {
-	data, err := json.Marshal(p.states)
-	if err != nil {
-		logrus.Errorf("保存扫描状态失败: %v", err)
-		return
-	}
-
-	if err := os.WriteFile(p.statePath, data, 0644); err != nil {
-		logrus.Errorf("保存扫描状态失败: %v", err)
-	}
-}
-
-// 解析单行Nginx日志
+// parseNginxLogLine 解析单行Nginx日志
 func (p *LogParser) parseNginxLogLine(line string) (*NginxLogRecord, error) {
 	matches := nginxLogPattern.FindStringSubmatch(line)
 
@@ -246,6 +288,11 @@ func (p *LogParser) parseNginxLogLine(line string) (*NginxLogRecord, error) {
 	timestamp, err := time.Parse("02/Jan/2006:15:04:05 -0700", matches[3])
 	if err != nil {
 		return nil, err
+	}
+
+	cutoffTime := time.Now().AddDate(0, 0, -31)
+	if timestamp.Before(cutoffTime) {
+		return nil, errors.New("日志超过30天")
 	}
 
 	decodedPath, err := url.QueryUnescape(matches[5])
@@ -279,4 +326,16 @@ func (p *LogParser) parseNginxLogLine(line string) (*NginxLogRecord, error) {
 		DomesticLocation: domesticLocation,
 		GlobalLocation:   globalLocation,
 	}, nil
+}
+
+// EmptyParserResult 生成空结果
+func EmptyParserResult(name, id string) ParserResult {
+	return ParserResult{
+		WebName:      name,
+		WebID:        id,
+		TotalEntries: 0,
+		Duration:     0,
+		Success:      true,
+		Error:        nil,
+	}
 }

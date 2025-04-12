@@ -50,13 +50,18 @@ func TimePointsAndLabels(
 			labels = append(labels, hourLabel)
 		}
 		return timePoints, labels
+	} else if timeRangeType == "yesterday" {
+		for hour := 0; hour <= 23; hour++ {
+			hourTime := setTime(now.AddDate(0, 0, -1), hour, 0, 0)
+			timePoints = append(timePoints, hourTime)
+			hourLabel := fmt.Sprintf("%d:00", hour)
+			labels = append(labels, hourLabel)
+		}
+		return timePoints, labels
 	}
 
 	var startDay, endDay time.Time
 	switch timeRangeType {
-	case "yesterday":
-		startDay = setTime(now.AddDate(0, 0, -1), 0, 0, 0)
-		endDay = setTime(now.AddDate(0, 0, -1), 23, 0, 0)
 	case "week":
 		startDay, endDay = weekBounds(now)
 	case "last7days":

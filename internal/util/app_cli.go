@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"syscall"
@@ -156,8 +157,10 @@ func validateConfig() bool {
 
 	// 检查是否至少有一个网站配置
 	if len(cfg.Websites) == 0 {
-		fmt.Fprintf(os.Stderr, "读取配置文件失败: 配置文件缺少网站配置，至少需要配置一个网站\n")
-		fmt.Fprintf(os.Stderr, "请修正配置问题后重新启动服务\n")
+		fmt.Fprintf(os.Stderr,
+			"读取配置文件失败: 配置文件缺少网站配置，至少需要配置一个网站\n")
+		fmt.Fprintf(os.Stderr,
+			"请修正配置问题后重新启动服务\n")
 		return true
 	}
 
@@ -165,13 +168,23 @@ func validateConfig() bool {
 	var missingLogs []string
 	for _, site := range cfg.Websites {
 		if site.LogPath == "" {
-			missingLogs = append(missingLogs, fmt.Sprintf("'%s' (缺少日志文件路径配置)", site.Name))
+			missingLogs = append(missingLogs,
+				fmt.Sprintf("'%s' (缺少日志文件路径配置)", site.Name))
 			continue
 		}
 
-		// 检查日志文件是否存在
-		if _, err := os.Stat(site.LogPath); os.IsNotExist(err) {
-			missingLogs = append(missingLogs, fmt.Sprintf("'%s' (%s)", site.Name, site.LogPath))
+		// 检查日志文件是否存在，支持通配符模式
+		if strings.Contains(site.LogPath, "*") {
+			matches, err := filepath.Glob(site.LogPath)
+			if err != nil || len(matches) == 0 {
+				missingLogs = append(missingLogs,
+					fmt.Sprintf("'%s' (%s - 未找到匹配的文件)",
+						site.Name, site.LogPath))
+			}
+		} else if _, err := os.Stat(site.LogPath); os.IsNotExist(err) {
+			// 普通文件路径
+			missingLogs = append(missingLogs,
+				fmt.Sprintf("'%s' (%s)", site.Name, site.LogPath))
 		}
 	}
 
@@ -219,7 +232,8 @@ func findAndTerminateProcesses(processName string) {
 		return
 	}
 
-	for _, pidStr := range strings.Split(strings.TrimSpace(string(output)), "\n") {
+	for _, pidStr := range strings.Split(
+		strings.TrimSpace(string(output)), "\n") {
 		// 解析PID
 		pid, err := strconv.Atoi(strings.TrimSpace(pidStr))
 		if err != nil || pid == skipPID || pid == ppid {
