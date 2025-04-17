@@ -24,7 +24,7 @@ NixVis 是一款基于 Go 语言开发的、开源轻量级 Nginx 日志分析�
 1. 下载最新版本的 NixVis
 
 ```bash
-wget https://github.com/beyondxinxin/nixvis/releases/latest/download/nixvis
+wget https://github.com/beyondxinxin/nixvis/releases/download/latest/nixvis
 chmod +x nixvis
 ```
 
@@ -91,8 +91,8 @@ go build -o nixvis ./cmd/nixvis/main.go
 1. 下载 docker-compose
 
 ```bash
-wget https://github.com/beyondxinxin/nixvis/releases/docker/download/docker-compose.yml
-wget https://github.com/beyondxinxin/nixvis/releases/docker/download/nixvis_config.json
+wget https://github.com/beyondxinxin/nixvis/releases/download/docker/docker-compose.yml
+wget https://github.com/beyondxinxin/nixvis/releases/download/docker/nixvis_config.json
 ```
 
 2. 修改 nixvis_config.json 添加您的网站信息和日志路径
