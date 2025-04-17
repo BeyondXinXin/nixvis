@@ -1,0 +1,81 @@
+name: Docker Publish
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.23.x"
+
+      - name: Tidy Go modules
+        run: go mod tidy
+
+      - name: Build binary
+        run: |
+          chmod +x ./package.sh
+          ./package.sh
+          chmod +x nixvis
+          ./nixvis -gen-config
+
+      - name: Generate Dockerfile
+        run: |
+          cat <<EOF > Dockerfile
+          FROM alpine:3.19
+          WORKDIR /app
+          COPY nixvis /app/nixvis
+          ENTRYPOINT ["/app/nixvis"]
+          EOF
+
+      - name: Generate docker-compose.yml
+        run: |
+          cat <<EOF > docker-compose.yml
+          version: '3'
+          services:
+            nixvis:
+              image: ${{ secrets.DOCKERHUB_USERNAME }}/nixvis:latest
+              ports:
+                - "8088:8088"
+              volumes:
+                - ./nixvis_config.json:/app/nixvis_config.json:ro
+                - /var/log/nginx/blog.log:/var/log/nginx/blog.log:ro
+          EOF
+
+      - name: Log in to DockerHub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/nixvis:latest
+
+      - name: Delete existing release and tag
+        run: |
+          gh release delete docker -y || true
+          git tag -d docker || true
+          git push --delete origin docker || true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create Release docker
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: docker
+          name: Docker Deployment
+          files: |
+            docker-compose.yml
+            nixvis_config.json
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

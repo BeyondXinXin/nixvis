@@ -35,20 +35,28 @@ chmod +x nixvis
 执行后将在当前目录生成 nixvis_config.json 配置文件。
 
 3. 编辑配置文件 nixvis_config.json，添加您的网站信息和日志路径
+
+支持自动切割的日志路径（详见 [说明](https://github.com/BeyondXinXin/nixvis/issues/2)）
+
 ```json
 {
-"system": {
-    "logDestination": "file"
-},
-"server": {
-    "Port": ":8088"
-},
-"websites": [
+  "websites": [
     {
-    "name": "我的博客",
-    "logPath": "/var/log/nginx/blog.log"
+      "name": "示例网站1",
+      "logPath": "./weblog_eg/blog.beyondxin.top.log"
+    },
+    {
+      "name": "示例网站2",
+      "logPath": "/var/log/nginx/blog.log"
     }
-]
+  ],
+  "system": {
+    "logDestination": "file",
+	"taskInterval": "5m"
+  },
+  "server": {
+    "Port": ":8088"
+  }
 }
 ```
 
@@ -77,6 +85,42 @@ go build -o nixvis ./cmd/nixvis/main.go
 # 或使用编译脚本
 # bash package.sh
 ```
+
+## docker部署
+
+1. 下载 docker-compose
+
+```bash
+wget https://github.com/beyondxinxin/nixvis/releases/docker/download/docker-compose.yml
+wget https://github.com/beyondxinxin/nixvis/releases/docker/download/nixvis_config.json
+```
+
+2. 修改 nixvis_config.json 添加您的网站信息和日志路径
+
+3. 修改 docker-compose.yml 添加文件挂载(nixvis_config.json、日志文件)
+
+如需分析多个日志文件，可以考虑将日志目录整体挂载（如 /var/log/nginx:/var/log/nginx:ro）。
+
+```yml
+version: '3'
+services:
+  nixvis:
+    image: ${{ secrets.DOCKERHUB_USERNAME }}/nixvis:latest
+    ports:
+      - "8088:8088"
+    volumes:
+      - ./nixvis_config.json:/app/nixvis_config.json:ro
+      - /var/log/nginx/blog.log:/var/log/nginx/blog.log:ro
+```
+
+4. 启动
+
+```bash
+docker compose up -d
+```
+
+5. 访问 Web 界面
+http://localhost:8088
 
 ## 技术栈
 
