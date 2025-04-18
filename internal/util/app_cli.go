@@ -201,6 +201,19 @@ func validateConfig() bool {
 		return true
 	}
 
+	// 检查PV过滤器配置
+	if len(cfg.PVFilter.StatusCodeInclude) == 0 {
+		fmt.Fprintf(os.Stderr, "配置文件错误: pvFilter.statusCodeInclude 不能为空\n")
+		fmt.Fprintf(os.Stderr, "请修正配置问题后重新启动服务\n")
+		return true
+	}
+
+	if len(cfg.PVFilter.ExcludePatterns) == 0 {
+		fmt.Fprintf(os.Stderr, "配置文件错误: pvFilter.excludePatterns 不能为空\n")
+		fmt.Fprintf(os.Stderr, "请修正配置问题后重新启动服务\n")
+		return true
+	}
+
 	return false
 }
 
