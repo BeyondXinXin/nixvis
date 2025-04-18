@@ -116,7 +116,7 @@ func writeDefaultConfig() error {
   ],
   "system": {
     "logDestination": "file",
-	"taskInterval": "5m"
+    "taskInterval": "5m"
   },
   "server": {
     "Port": ":8088"

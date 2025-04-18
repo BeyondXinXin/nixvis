@@ -52,10 +52,28 @@ chmod +x nixvis
   ],
   "system": {
     "logDestination": "file",
-	"taskInterval": "5m"
+    "taskInterval": "5m"
   },
   "server": {
     "Port": ":8088"
+  },
+  "pvFilter": {
+    "statusCodeInclude": [
+      200
+    ],
+    "excludePatterns": [
+      "favicon.ico$",
+      "robots.txt$",
+      "sitemap.xml$",
+      "\\.(?:js|css|jpg|jpeg|png|gif|svg|webp|woff|woff2|ttf|eot|ico)$",
+      "^/api/",
+      "^/ajax/",
+      "^/health$",
+      "^/_(?:nuxt|next)/",
+      "rss.xml$",
+      "feed.xml$",
+      "atom.xml$"
+    ]
   }
 }
 ```
@@ -111,6 +129,7 @@ services:
     volumes:
       - ./nixvis_config.json:/app/nixvis_config.json:ro
       - /var/log/nginx/blog.log:/var/log/nginx/blog.log:ro
+      - /etc/localtime:/etc/localtime:ro
 ```
 
 4. 启动
