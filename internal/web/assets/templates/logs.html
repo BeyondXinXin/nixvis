@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ .title }}</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="/static/css/tables.css">
+    <link rel="stylesheet" href="/static/css/logs.css">
+    <link rel="stylesheet" href="/static/css/media.css">
+</head>
+
+<body>
+    <div class="container">
+        <header class="header-container">
+            <h1>
+                <select id="website-selector" class="website-dropdown">
+                    <option value="">加载中...</option>
+                </select> 访问日志
+            </h1>
+            <div class="header-controls">
+                <a href="/" class="nav-link">返回首页</a>
+                <button id="theme-toggle" class="theme-toggle" title="切换主题">
+                    <span class="light-icon">🌙</span>
+                    <span class="dark-icon">☀️</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- 日志查询控制区 -->
+        <div class="box-container logs-control-box">
+            <div class="logs-control-content">
+                <div class="search-box">
+                    <input type="text" id="logs-search" placeholder="搜索日志..." class="search-input">
+                    <button id="search-btn" class="search-btn">搜索</button>
+                </div>
+                <div class="sort-controls">
+                    <div class="sort-field-container">
+                        <label for="sort-field">排序字段:</label>
+                        <select id="sort-field" class="sort-select">
+                            <option value="timestamp">时间</option>
+                            <option value="ip">IP</option>
+                            <option value="url">URL</option>
+                            <option value="status_code">状态码</option>
+                            <option value="bytes_sent">流量</option>
+                        </select>
+                    </div>
+                    <div class="sort-order-container">
+                        <label for="sort-order">顺序:</label>
+                        <select id="sort-order" class="sort-select">
+                            <option value="desc">降序</option>
+                            <option value="asc">升序</option>
+                        </select>
+                    </div>
+                    <div class="page-size-container">
+                        <label for="page-size">每页行数:</label>
+                        <select id="page-size" class="sort-select">
+                            <option value="50">50</option>
+                            <option value="100" selected>100</option>
+                            <option value="200">200</option>
+                            <option value="500">500</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 日志表格区 -->
+        <div class="box-container logs-table-box">
+            <div class="logs-table-wrapper">
+                <table id="logs-table" class="logs-table">
+                    <thead>
+                        <tr>
+                            <th>时间</th>
+                            <th>IP</th>
+                            <th>位置</th>
+                            <th>请求</th>
+                            <th>状态</th>
+                            <th>流量</th>
+                            <th>来源</th>
+                            <th>浏览器</th>
+                            <th>系统</th>
+                            <th>设备</th>
+                            <th>PV</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr class="loading-row">
+                            <td colspan="11">加载中...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 分页控制区 -->
+        <div class="box-container pagination-box">
+            <div class="pagination-controls">
+                <button id="prev-page" class="page-btn">&lt; 上一页</button>
+                <div class="pagination-center">
+                    <div class="page-info">
+                        <span>第 <span id="current-page">1</span> 页，共 <span id="total-pages">0</span> 页</span>
+                    </div>
+                    <div class="page-jump">
+                        <input type="number" id="page-jump-input" min="1" class="page-jump-input" placeholder="跳转到">
+                        <button id="page-jump-btn" class="page-btn">跳转</button>
+                    </div>
+                </div>
+                <button id="next-page" class="page-btn">下一页 &gt;</button>
+            </div>
+        </div>
+
+        <footer>
+            <p>NixVis - Nginx 网站日志分析工具</p>
+        </footer>
+    </div>
+
+    <script type="module" src="/static/js/logs.js"></script>
+</body>
+
+</html>

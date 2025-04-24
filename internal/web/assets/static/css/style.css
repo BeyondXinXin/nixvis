@@ -320,8 +320,38 @@ body.dark-mode .theme-toggle .dark-icon {
 /* 页脚样式 */
 footer {
     text-align: center;
-    padding: 0px;
+    padding: 15px 0;
     color: var(--footer-color);
     font-size: 0.9rem;
     border-top: 1px solid var(--border-color);
+}
+
+.footer-content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+}
+
+.footer-content p {
+    margin: 0;
+}
+
+.footer-link {
+    color: var(--active-btn);
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.2s;
+    display: inline-flex;
+    align-items: center;
+}
+
+.footer-link:hover {
+    color: var(--primary-color-dark);
+    text-decoration: underline;
+}
+
+.footer-link::before {
+    content: "📋";
+    margin-right: 5px;
 }

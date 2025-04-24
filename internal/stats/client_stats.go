@@ -82,8 +82,8 @@ func (s *ClientStatsManager) Query(query StatsQuery) (StatsResult, error) {
 		statsType = query.ExtraParam["locationType"].(string) + "_location"
 	}
 	limit, _ := query.ExtraParam["limit"].(int)
-
-	startTime, endTime, err := util.TimePeriod(query.TimeRange)
+	timeRange := query.ExtraParam["timeRange"].(string)
+	startTime, endTime, err := util.TimePeriod(timeRange)
 	if err != nil {
 		return result, err
 	}

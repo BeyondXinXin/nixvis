@@ -36,7 +36,6 @@ func TimePeriod(timeRange string) (time.Time, time.Time, error) {
 // TimePointsAndLabels 根据时间范围类型和视图类型直接返回时间点数组和标签数组
 func TimePointsAndLabels(
 	timeRangeType string, viewType string) ([]time.Time, []string) {
-
 	now := time.Now()
 
 	var timePoints []time.Time

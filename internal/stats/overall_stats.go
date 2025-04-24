@@ -39,7 +39,8 @@ func (s *OverallStatsManager) Query(query StatsQuery) (StatsResult, error) {
 		Traffic: 0,
 	}
 
-	startTime, endTime, err := util.TimePeriod(query.TimeRange)
+	timeRange := query.ExtraParam["timeRange"].(string)
+	startTime, endTime, err := util.TimePeriod(timeRange)
 	if err != nil {
 		return result, err
 	}

@@ -35,6 +35,11 @@ func SetupRoutes(
 			"title": "NixVis - Nginx访问统计",
 		})
 	})
+	router.GET("/logs", func(c *gin.Context) {
+		c.HTML(http.StatusOK, "logs.html", gin.H{
+			"title": "NixVis - 访问日志查看",
+		})
+	})
 	router.GET("/favicon.ico", func(c *gin.Context) {
 		data, err := fs.ReadFile(staticFiles, "assets/static/favicon.ico")
 		if err != nil {
@@ -69,67 +74,18 @@ func SetupRoutes(
 	// 查询接口
 	router.GET("/api/stats/:type", func(c *gin.Context) {
 		statsType := c.Param("type")
-		websiteID := c.Query("id")
-		timeRange := c.Query("timeRange")
-
-		// 构建查询对象
-		query := stats.StatsQuery{
-			WebsiteID:  websiteID,
-			TimeRange:  timeRange,
-			ViewType:   c.DefaultQuery("viewType", ""),
-			ExtraParam: make(map[string]interface{}),
+		params := make(map[string]string)
+		for key, values := range c.Request.URL.Query() {
+			if len(values) > 0 {
+				params[key] = values[0]
+			}
 		}
 
-		// 检查必要参数
-		if websiteID == "" || timeRange == "" {
+		query, err := statsFactory.BuildQueryFromRequest(statsType, params)
+
+		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{
-				"error": "缺少必要参数: id 和 timeRange",
-			})
-			return
-		}
-
-		// 根据统计类型设置额外参数
-		switch statsType {
-		case "url", "referer", "browser", "os", "device":
-			if limitStr := c.Query("limit"); limitStr != "" {
-				limit := 10 // 默认值
-				if _, err := fmt.Sscanf(limitStr, "%d", &limit); err == nil {
-					query.ExtraParam["limit"] = limit
-				}
-			} else {
-				query.ExtraParam["limit"] = 10
-			}
-		case "location":
-			if limitStr := c.Query("limit"); limitStr != "" {
-				limit := 99 // 默认值
-				if _, err := fmt.Sscanf(limitStr, "%d", &limit); err == nil {
-					query.ExtraParam["limit"] = limit
-				}
-			} else {
-				query.ExtraParam["limit"] = 99
-			}
-
-			if locationType := c.Query("locationType"); locationType != "" {
-				query.ExtraParam["locationType"] = locationType
-			} else {
-				c.JSON(http.StatusBadRequest, gin.H{
-					"error": "缺少必要参数: locationType",
-				})
-				return
-			}
-
-		case "timeseries":
-			if query.ViewType == "" {
-				c.JSON(http.StatusBadRequest, gin.H{
-					"error": "时间序列查询需要 viewType 参数",
-				})
-				return
-			}
-		case "overall":
-			// 总体统计不需要额外参数
-		default:
-			c.JSON(http.StatusBadRequest, gin.H{
-				"error": fmt.Sprintf("不支持的统计类型: %s", statsType),
+				"error": err.Error(),
 			})
 			return
 		}

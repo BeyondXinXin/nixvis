@@ -1,0 +1,312 @@
+/* 日志页面专用样式 */
+
+.logs-control-box {
+    padding: 15px 20px;
+}
+
+.logs-control-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.search-box {
+    display: flex;
+    gap: 10px;
+    flex: 1;
+    min-width: 200px;
+}
+
+.search-input {
+    flex: 1;
+    padding: 8px 12px;
+    border-radius: 5px;
+    border: 1px solid var(--border-color);
+    background-color: var(--input-bg);
+    color: var(--text-color);
+    font-size: 14px;
+}
+
+.search-btn {
+    padding: 8px 15px;
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: background-color 0.2s;
+}
+
+.search-btn:hover {
+    background-color: var(--primary-color-dark);
+}
+
+.sort-controls {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.sort-field-container,
+.sort-order-container,
+.page-size-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.sort-select {
+    padding: 6px 10px;
+    border-radius: 5px;
+    border: 1px solid var(--border-color);
+    background-color: var(--input-bg);
+    color: var(--text-color);
+    font-size: 13px;
+}
+
+.logs-table-box {
+    height: auto;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 500px;
+}
+
+.logs-table-wrapper {
+    overflow-x: auto;
+    width: 100%;
+    flex: 1;
+}
+
+.logs-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    table-layout: fixed;
+}
+
+.logs-table th,
+.logs-table td {
+    padding: 8px 10px;
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.logs-table th {
+    position: sticky;
+    top: 0;
+    background-color: var(--highlight-bg);
+    z-index: 1;
+    font-weight: 600;
+}
+
+.logs-table tbody tr:nth-child(even) {
+    background-color: var(--row-alt-bg);
+}
+
+.logs-table tbody tr:hover {
+    background-color: var(--highlight-bg);
+}
+
+/* 日志表格列宽控制 */
+.logs-table th:nth-child(1) {
+    width: 12%;
+    /* 时间列 */
+}
+
+.logs-table th:nth-child(2) {
+    width: 8%;
+    /* IP列 */
+}
+
+.logs-table th:nth-child(3) {
+    width: 5%;
+    /* 位置列 */
+}
+
+.logs-table th:nth-child(4) {
+    width: 12%;
+    /* 请求列 */
+}
+
+.logs-table th:nth-child(5) {
+    width: 5%;
+    /* 状态码列 */
+}
+
+.logs-table th:nth-child(6) {
+    width: 7%;
+    /* 流量列 */
+}
+
+.logs-table th:nth-child(7) {
+    width: 12%;
+    /* 来源 */
+}
+
+.logs-table th:nth-child(8) {
+    width: 8%;
+    /* 浏览器 */
+}
+
+.logs-table th:nth-child(9) {
+    width: 7%;
+    /* 系统 */
+}
+
+.logs-table th:nth-child(10) {
+    width: 5%;
+    /* 设备 */
+}
+
+.logs-table th:nth-child(11) {
+    width: 4%;
+    /* PV */
+}
+
+.pagination-box {
+    padding: 15px 20px;
+    margin-top: 15px;
+}
+
+.pagination-controls {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+}
+
+.pagination-center {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex-grow: 1;
+    gap: 8px;
+}
+
+.page-info {
+    text-align: center;
+}
+
+.page-jump {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.page-btn {
+    padding: 8px 15px;
+    background-color: var(--box-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: 600;
+    color: var(--text-color);
+    transition: all 0.2s;
+}
+
+.page-btn:hover:not(:disabled) {
+    background-color: var(--highlight-bg);
+}
+
+.page-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.page-info {
+    font-size: 14px;
+    color: var(--text-color);
+    flex: 1;
+    text-align: center;
+}
+
+.page-jump {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.page-jump-input {
+    width: 60px;
+    padding: 6px 10px;
+    border-radius: 5px;
+    border: 1px solid var(--border-color);
+    background-color: var(--input-bg);
+    color: var(--text-color);
+    font-size: 14px;
+    text-align: center;
+}
+
+/* 移除数字输入框的上下箭头 */
+.page-jump-input::-webkit-inner-spin-button,
+.page-jump-input::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.nav-link {
+    display: inline-block;
+    padding: 8px 15px;
+    background-color: var(--active-btn); /* 使用主题变量中的活动按钮颜色 */
+    color: var(--active-text); /* 使用主题变量中的活动文本颜色 */
+    text-decoration: none;
+    border-radius: 5px;
+    margin-right: 10px;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px var(--shadow-color);
+}
+
+.nav-link:hover {
+    background-color: #0056b3; /* 深一点的蓝色作为悬停颜色 */
+    transform: translateY(-1px);
+    box-shadow: 0 3px 6px var(--shadow-color);
+}
+
+.nav-link:active {
+    transform: translateY(0);
+    box-shadow: 0 1px 2px var(--shadow-color);
+}
+
+/* 修复黑色主题下拉菜单文本不可见问题 */
+select,
+.sort-select {
+    padding: 6px 10px;
+    border-radius: 5px;
+    border: 1px solid var(--border-color);
+    background-color: var(--input-bg);
+    color: var(--text-color);
+    font-size: 13px;
+    appearance: auto;
+    /* 保留下拉箭头 */
+}
+
+/* 适配下拉菜单选项颜色 */
+select option {
+    background-color: var(--box-bg);
+    color: var(--text-color);
+}
+
+/* 确保下拉菜单有hover状态 */
+select:hover,
+.sort-select:hover {
+    border-color: var(--primary-color);
+}
+
+/* 对下拉菜单有焦点时的样式 */
+select:focus,
+.sort-select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(var(--primary-color-rgb), 0.25);
+}

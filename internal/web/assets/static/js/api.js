@@ -71,3 +71,19 @@ export async function fectchLocationStats(websiteId, timeRange, locationType, li
     return fetchStats('location', { id: websiteId, locationType, timeRange, limit });
 }
 
+export async function fetchLogs(websiteId, page, pageSize, sortField, sortOrder, filter) {
+    const params = {
+        id: websiteId,
+        page: page,
+        pageSize: pageSize,
+        sortField: sortField,
+        sortOrder: sortOrder
+    };
+
+    if (filter) {
+        params.filter = filter;
+    }
+
+    return fetchStats('logs', params);
+}
+

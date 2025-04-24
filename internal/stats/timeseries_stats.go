@@ -39,8 +39,9 @@ func NewTimeSeriesStatsManager(userRepoPtr *storage.Repository) *TimeSeriesStats
 
 // 实现 StatsManager 接口
 func (s *TimeSeriesStatsManager) Query(query StatsQuery) (StatsResult, error) {
-
-	timePoints, labels := util.TimePointsAndLabels(query.TimeRange, query.ViewType)
+	timeRange := query.ExtraParam["timeRange"].(string)
+	viewType := query.ExtraParam["viewType"].(string)
+	timePoints, labels := util.TimePointsAndLabels(timeRange, viewType)
 	result := TimeSeriesStats{
 		Labels:    labels,
 		Visitors:  make([]int, len(timePoints)),
