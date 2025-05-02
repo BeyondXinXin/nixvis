@@ -79,8 +79,8 @@ func ReadConfig() *Config {
 
 	// 初始化 ID 映射
 	for _, website := range cfg.Websites {
-		id := generateID(website.LogPath)
-		websiteIDMap.Store(id, website) // 以 ID 为键存储 WebsiteConfig
+		id := generateID(website.Name)
+		websiteIDMap.Store(id, website)
 	}
 
 	globalConfig = cfg
