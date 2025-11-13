@@ -54,7 +54,7 @@ function updateClientTable(tableId, data, showPv = false) {
                 <td class="item-path" title="${itemlab}">${itemlab}</td>
                 <td class="item-count">
                     <div class="bar-container">
-                        <span class="bar-label">${itemPV[index]}</span>
+                        <span class="bar-label">${itemUV[index]}</span>
                         <div class="bar">
                             <div class="bar-fill" style="width: ${itemPvPercent}%;"></div>
                             <span class="bar-percentage">${itemPvPercent}%</span>
@@ -63,7 +63,7 @@ function updateClientTable(tableId, data, showPv = false) {
                 </td>
                 <td class="item-count">
                     <div class="bar-container">
-                        <span class="bar-label">${itemUV[index]}</span>
+                        <span class="bar-label">${itemPV[index]}</span>
                         <div class="bar">
                             <div class="bar-fill" style="width: ${percentage}%;"></div>
                             <span class="bar-percentage">${percentage}%</span>
