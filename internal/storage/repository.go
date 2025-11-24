@@ -125,6 +125,54 @@ func (r *Repository) BatchInsertLogsForWebsite(websiteID string, logs []NginxLog
 	return tx.Commit()
 }
 
+// CleanOldLogs 清理45天前的日志数据
+func (r *Repository) CleanOldLogs() error {
+	cutoffTime := time.Now().AddDate(0, 0, -45).Unix()
+
+	deletedCount := 0
+
+	rows, err := r.db.Query(`
+        SELECT name FROM sqlite_master 
+        WHERE type='table' AND name LIKE '%_nginx_logs'
+    `)
+	if err != nil {
+		return fmt.Errorf("查询表名失败: %v", err)
+	}
+	defer rows.Close()
+
+	var tableNames []string
+	for rows.Next() {
+		var tableName string
+		if err := rows.Scan(&tableName); err != nil {
+			logrus.WithError(err).Error("扫描表名失败")
+			continue
+		}
+		tableNames = append(tableNames, tableName)
+	}
+
+	for _, tableName := range tableNames {
+		result, err := r.db.Exec(
+			fmt.Sprintf(`DELETE FROM "%s" WHERE timestamp < ?`, tableName), cutoffTime,
+		)
+		if err != nil {
+			logrus.WithError(err).Errorf("清理表 %s 的旧日志失败", tableName)
+			continue
+		}
+
+		count, _ := result.RowsAffected()
+		deletedCount += int(count)
+	}
+
+	if deletedCount > 0 {
+		logrus.Infof("删除了 %d 条45天前的日志记录", deletedCount)
+		if _, err := r.db.Exec("VACUUM"); err != nil {
+			logrus.WithError(err).Error("数据库压缩失败")
+		}
+	}
+
+	return nil
+}
+
 func (r *Repository) createTables() error {
 	common := `id INTEGER PRIMARY KEY AUTOINCREMENT,
 	ip TEXT NOT NULL,

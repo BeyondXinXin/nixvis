@@ -68,6 +68,7 @@ func ConfigureLogging() {
 			return
 		}
 		logFileHandle = logFile
+		logFile.WriteString("\n\n\n")
 		logrus.SetOutput(logFile)
 		logrus.Info("日志系统已初始化")
 	default:

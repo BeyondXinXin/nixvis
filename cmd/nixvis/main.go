@@ -2,10 +2,10 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -96,15 +96,32 @@ func startHTTPServer(statsFactory *stats.StatsFactory) {
 			logrus.WithField("error", err).Error("Failed to start the server")
 		}
 	}()
-	logrus.Info("服务器初始化成功")
+	logrus.Infof("服务器已启动，监听地址: %s", cfg.Server.Port)
 }
 
 // setupCORS 配置跨域中间件
 func setupCORS(statsFactory *stats.StatsFactory) *gin.Engine {
 
-	gin.DefaultWriter = logrus.StandardLogger().Writer()
 	gin.SetMode(gin.ReleaseMode)
-	r := gin.Default()
+	r := gin.New()
+
+	r.Use(gin.Recovery())
+	r.Use(func(c *gin.Context) {
+		path := c.Request.URL.Path
+		start := time.Now()
+		c.Next()
+		duration := time.Since(start)
+		status := c.Writer.Status()
+
+		if status >= 400 {
+			logrus.Warnf("HTTP %d %s %s %s %v",
+				status, c.Request.Method, path, c.ClientIP(), duration)
+		} else if strings.HasPrefix(path, "/api/") && duration > 100*time.Millisecond {
+			logrus.Warnf("高延迟 %s %s %d %s %v",
+				c.Request.Method, path, status, c.ClientIP(), duration)
+		}
+	})
+
 	r.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{"*"},
 		AllowMethods:     []string{"GET"},
@@ -158,11 +175,7 @@ func runPeriodicTaskScheduler(
 		select {
 		case <-ticker.C:
 			iteration++
-			logrus.WithFields(logrus.Fields{
-				"iteration": iteration,
-				"interval":  interval,
-			}).Info("执行定期维护任务")
-
+			logrus.WithFields(logrus.Fields{"iteration": iteration}).Info("定期任务开始")
 			executePeriodicTasks(parser)
 		case <-ctx.Done():
 			return
@@ -172,38 +185,49 @@ func runPeriodicTaskScheduler(
 
 // executePeriodicTasks 执行周期性任务
 func executePeriodicTasks(parser *storage.LogParser) {
-	if err := util.RotateLogFile(); err != nil {
-		logrus.WithError(err).Warn("日志轮转失败")
-	}
 
-	logrus.WithField("task", "nginx_scan").Info("开始扫描Nginx日志")
-
-	startTime := time.Now()
-	results := parser.ScanNginxLogs()
-	totalDuration := time.Since(startTime)
-
-	// 打印每个网站的扫描结果
-	totalEntries := 0
-	successCount := 0
-
-	for _, result := range results {
-		if result.WebName == "" {
-			continue // 跳过空记录
-		}
-
-		totalEntries += result.TotalEntries
-
-		if result.Success {
-			successCount++
-			logrus.Info(fmt.Sprintf("网站 %s (%s) 扫描完成: %d 条记录, 耗时 %.2fs",
-				result.WebName, result.WebID, result.TotalEntries, result.Duration.Seconds()))
-		} else {
-			logrus.Info(fmt.Sprintf("网站 %s (%s) 扫描失败: %s",
-				result.WebName, result.WebID, result.Error))
+	{ // 1 日志轮转
+		if err := util.RotateLogFile(); err != nil {
+			logrus.WithError(err).Warn("日志轮转失败")
 		}
 	}
 
-	// 任务完成总结日志
-	logrus.Info(fmt.Sprintf("Nginx日志扫描完成: %d/%d 个站点成功, 共 %d 条记录, 总耗时 %.2fs",
-		successCount, len(results), totalEntries, totalDuration.Seconds()))
+	{ // 2 清理旧数据
+		if err := parser.CleanOldLogs(); err != nil {
+			logrus.WithError(err).Warn("清理数据库中过期日志数据失败")
+		}
+	}
+
+	{ // 3 Nginx日志扫描
+		startTime := time.Now()
+		results := parser.ScanNginxLogs()
+		totalDuration := time.Since(startTime)
+
+		totalEntries := 0
+		successCount := 0
+
+		for _, result := range results {
+			if result.WebName == "" {
+				continue
+			}
+
+			totalEntries += result.TotalEntries
+
+			if result.Success {
+				successCount++
+				if result.TotalEntries > 0 {
+					logrus.Infof("网站 %s (%s) 扫描完成: %d 条记录, 耗时 %.2fs",
+						result.WebName, result.WebID, result.TotalEntries, result.Duration.Seconds())
+				}
+			} else {
+				logrus.Warnf("网站 %s (%s) 扫描失败: %s",
+					result.WebName, result.WebID, result.Error)
+			}
+		}
+
+		if totalEntries > 0 {
+			logrus.Infof("Nginx日志扫描完成: %d/%d 个站点成功, 共 %d 条记录, 总耗时 %.2fs",
+				successCount, len(results), totalEntries, totalDuration.Seconds())
+		}
+	}
 }

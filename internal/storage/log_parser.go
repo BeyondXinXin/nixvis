@@ -19,6 +19,7 @@ import (
 
 var (
 	nginxLogPattern = regexp.MustCompile(`^(\S+) - (\S+) \[([^\]]+)\] "(\S+) ([^"]+) HTTP\/\d\.\d" (\d+) (\d+) "([^"]*)" "([^"]*)"`)
+	lastCleanupDate = ""
 )
 
 // 解析结果
@@ -91,6 +92,27 @@ func (p *LogParser) updateState() {
 	if err := os.WriteFile(p.statePath, data, 0644); err != nil {
 		logrus.Errorf("保存扫描状态失败: %v", err)
 	}
+}
+
+// CleanOldLogs 清理45天前的日志数据
+func (p *LogParser) CleanOldLogs() error {
+	today := time.Now().Format("2006-01-02")
+	currentHour := time.Now().Hour()
+
+	shouldClean := lastCleanupDate == "" || (currentHour == 2 && lastCleanupDate != today)
+
+	if !shouldClean {
+		return nil
+	}
+
+	err := p.repo.CleanOldLogs()
+	if err != nil {
+		return err
+	}
+
+	lastCleanupDate = today
+
+	return nil
 }
 
 // ScanNginxLogs 增量扫描Nginx日志文件
@@ -170,8 +192,10 @@ func (p *LogParser) scanSingleFile(
 	// 更新文件状态
 	p.updateFileState(websiteID, logPath, currentSize)
 
-	logrus.Infof("网站 %s 的日志文件 %s 扫描完成，解析了 %d 条记录",
-		websiteID, logPath, entriesCount)
+	if entriesCount > 0 {
+		logrus.Infof("网站 %s 的日志文件 %s 扫描完成，解析了 %d 条记录",
+			websiteID, logPath, entriesCount)
+	}
 }
 
 // updateFileState 更新文件状态
@@ -281,7 +305,7 @@ func (p *LogParser) parseLogLines(
 func (p *LogParser) parseNginxLogLine(line string) (*NginxLogRecord, error) {
 	matches := nginxLogPattern.FindStringSubmatch(line)
 
-	if matches == nil || len(matches) < 10 {
+	if len(matches) < 10 {
 		return nil, errors.New("日志格式不匹配")
 	}
 
