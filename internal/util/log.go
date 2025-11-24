@@ -5,8 +5,20 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"sync"
 
 	"github.com/sirupsen/logrus"
+)
+
+const (
+	LogFileName       = "nixvis.log"
+	LogBackupFileName = "nixvis_backup.log"
+	LogMaxSize        = 5 * 1024 * 1024 // 5MB
+)
+
+var (
+	logFileHandle *os.File
+	logMutex      sync.Mutex
 )
 
 type CustomFormatter struct{}
@@ -40,20 +52,77 @@ func ConfigureLogging() {
 	logrus.SetLevel(logrus.InfoLevel)
 
 	cfg := ReadConfig()
-	if cfg.System.LogDestination == "stdout" {
+
+	switch cfg.System.LogDestination {
+	case "stdout":
 		logrus.SetOutput(os.Stdout)
-	} else if cfg.System.LogDestination == "file" {
-		logFile, err := os.OpenFile(filepath.Join(DataDir, "log.log"),
-			os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
-		if err == nil {
-			logrus.SetOutput(logFile)
-		} else {
-			panic(err)
+	case "file":
+		logMutex.Lock()
+		defer logMutex.Unlock()
+
+		logPath := filepath.Join(DataDir, LogFileName)
+		logFile, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+		if err != nil {
+			logrus.SetOutput(os.Stdout)
+			logrus.WithError(err).Error("无法打开日志文件,降级到stdout输出")
+			return
 		}
-		if _, err := logrus.StandardLogger().Out.Write([]byte("\n\n\n")); err != nil {
-			panic(err)
-		}
-		logrus.Info("Starting Application")
+		logFileHandle = logFile
+		logrus.SetOutput(logFile)
+		logrus.Info("日志系统已初始化")
+	default:
+		logrus.SetOutput(os.Stdout)
+	}
+}
+
+// RotateLogFile 轮转日志文件
+func RotateLogFile() error {
+	cfg := ReadConfig()
+	if cfg.System.LogDestination != "file" {
+		return nil
 	}
 
+	logPath := filepath.Join(DataDir, LogFileName)
+	info, err := os.Stat(logPath)
+	if err != nil || info.Size() <= LogMaxSize {
+		return nil
+	}
+
+	logMutex.Lock()
+	defer logMutex.Unlock()
+
+	if logFileHandle != nil {
+		logFileHandle.Close()
+		logFileHandle = nil
+	}
+
+	backupPath := filepath.Join(DataDir, LogBackupFileName)
+	os.Remove(backupPath)
+	renameErr := os.Rename(logPath, backupPath)
+
+	logFileHandle, err = os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	if err != nil {
+		return fmt.Errorf("打开日志文件失败: %v", err)
+	}
+
+	logrus.SetOutput(logFileHandle)
+
+	if renameErr != nil {
+		logrus.WithError(renameErr).Warn("日志轮转失败但继续使用原文件")
+	} else {
+		logrus.Info("日志文件已轮转")
+	}
+
+	return nil
+}
+
+// CloseLogFile 关闭日志文件
+func CloseLogFile() {
+	logMutex.Lock()
+	defer logMutex.Unlock()
+
+	if logFileHandle != nil {
+		logFileHandle.Close()
+		logFileHandle = nil
+	}
 }

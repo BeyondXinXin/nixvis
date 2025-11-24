@@ -27,6 +27,7 @@ func main() {
 
 	// 初始化日志、配置
 	util.ConfigureLogging()
+	defer util.CloseLogFile()
 
 	logrus.Info("------ 服务启动成功 ------")
 	// 在 main 函数中的适当位置添加
@@ -137,8 +138,7 @@ func startPeriodicTaskScheduler(logParser *storage.LogParser) {
 	cancel() // 取消上下文将会通知所有后台任务退出
 
 	// 给后台任务一些时间来完成清理
-	shutdownCtx, shutdownCancel :=
-		context.WithTimeout(context.Background(), 1*time.Second)
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer shutdownCancel()
 	<-shutdownCtx.Done()
 }
@@ -172,6 +172,10 @@ func runPeriodicTaskScheduler(
 
 // executePeriodicTasks 执行周期性任务
 func executePeriodicTasks(parser *storage.LogParser) {
+	if err := util.RotateLogFile(); err != nil {
+		logrus.WithError(err).Warn("日志轮转失败")
+	}
+
 	logrus.WithField("task", "nginx_scan").Info("开始扫描Nginx日志")
 
 	startTime := time.Now()
