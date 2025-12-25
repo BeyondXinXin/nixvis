@@ -36,7 +36,8 @@ chmod +x nixvis
 
 3. 编辑配置文件 nixvis_config.json，添加您的网站信息和日志路径
 
-支持自动切割的日志路径（详见 [说明](https://github.com/BeyondXinXin/nixvis/issues/2)）
+- 支持日志轮转路径 ([#2](https://github.com/BeyondXinXin/nixvis/issues/2))
+- 支持 PV 过滤规则 ([#21](https://github.com/BeyondXinXin/nixvis/issues/21))
 
 ```json
 {
@@ -73,7 +74,8 @@ chmod +x nixvis
       "rss.xml$",
       "feed.xml$",
       "atom.xml$"
-    ]
+    ],
+    "excludeIPs": ["127.0.0.1", "::1"] 
   }
 }
 ```

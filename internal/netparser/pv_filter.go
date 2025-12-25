@@ -9,6 +9,7 @@ import (
 var (
 	// 全局过滤规则编译后的正则表达式
 	excludePatterns []*regexp.Regexp
+	excludeIPs      map[string]bool
 	statusCodes     map[int]bool
 )
 
@@ -27,12 +28,23 @@ func InitPVFilters() {
 	for i, pattern := range cfg.PVFilter.ExcludePatterns {
 		excludePatterns[i] = regexp.MustCompile(pattern)
 	}
+
+	// 初始化IP过滤
+	excludeIPs = make(map[string]bool)
+	for _, ip := range cfg.PVFilter.ExcludeIPs {
+		excludeIPs[ip] = true
+	}
 }
 
-// IsPageView 判断是否符合 PV 过滤条件
-func IsPageView(statusCode int, path string) int {
+// ShouldCountAsPageView 判断是否符合 PV 过滤条件
+func ShouldCountAsPageView(statusCode int, path string, ip string) int {
 	// 检查状态码
 	if !statusCodes[statusCode] {
+		return 0
+	}
+
+	// 检查排除 IP 列表
+	if excludeIPs[ip] {
 		return 0
 	}
 

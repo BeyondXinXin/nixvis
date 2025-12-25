@@ -40,6 +40,7 @@ type ServerConfig struct {
 type PVFilterConfig struct {
 	StatusCodeInclude []int    `json:"statusCodeInclude"`
 	ExcludePatterns   []string `json:"excludePatterns"`
+	ExcludeIPs        []string `json:"excludeIPs"`
 }
 
 // ReadRawConfig 读取配置文件但不初始化全局变量

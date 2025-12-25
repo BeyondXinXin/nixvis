@@ -330,7 +330,7 @@ func (p *LogParser) parseNginxLogLine(line string) (*NginxLogRecord, error) {
 		referPath = matches[8]
 	}
 
-	pageviewFlag := netparser.IsPageView(statusCode, decodedPath)
+	pageviewFlag := netparser.ShouldCountAsPageView(statusCode, decodedPath, matches[1])
 	domesticLocation, globalLocation, _ := netparser.GetIPLocation(matches[1])
 	browser, os, device := netparser.ParseUserAgent(matches[9])
 
