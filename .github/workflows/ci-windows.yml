@@ -19,8 +19,7 @@ jobs:
         run: go mod tidy
 
       - name: Run package script
-        run: |
-          run: .\package.bat
+        run: .\package.bat
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
