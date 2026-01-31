@@ -47,7 +47,7 @@ jobs:
       - name: Delete existing release and tag
         uses: dev-drprasad/delete-tag-and-release@v1.0
         with:
-          tag_name: latest-linux
+          tag_name: latest
           github_token: ${{ secrets.GITHUB_TOKEN }}
           delete_release: true
         continue-on-error: true
@@ -55,8 +55,8 @@ jobs:
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: latest-linux
-          name: Latest Build - Linux
+          tag_name: latest
+          name: Latest Build
           files: nixvis
           draft: false
           prerelease: false
