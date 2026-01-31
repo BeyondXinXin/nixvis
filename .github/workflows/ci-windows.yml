@@ -1,11 +1,11 @@
-name: CI-Linux
+name: CI-Windows
 
 on:
   workflow_dispatch:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -20,34 +20,30 @@ jobs:
 
       - name: Run package script
         run: |
-          chmod +x ./package.sh
-          ./package.sh
+          run: .\package.bat
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
-          name: nixvis-linux
-          path: nixvis
+          name: nixvis-windows
+          path: nixvis.exe
 
   release:
     needs: build
     if: github.event_name == 'push' && github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     permissions:
       contents: write
     steps:
       - name: Download build artifact
         uses: actions/download-artifact@v4
         with:
-          name: nixvis-linux
-
-      - name: Make executable
-        run: chmod +x nixvis
+          name: nixvis-windows
 
       - name: Delete existing release and tag
         uses: dev-drprasad/delete-tag-and-release@v1.0
         with:
-          tag_name: latest-linux
+          tag_name: latest-windows
           github_token: ${{ secrets.GITHUB_TOKEN }}
           delete_release: true
         continue-on-error: true
@@ -55,9 +51,9 @@ jobs:
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: latest-linux
-          name: Latest Build - Linux
-          files: nixvis
+          tag_name: latest-windows
+          name: Latest Build - Windows
+          files: nixvis.exe
           draft: false
           prerelease: false
         env:
