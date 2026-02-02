@@ -121,6 +121,14 @@ func writeDefaultConfig() error {
   "server": {
     "Port": ":8088"
   },
+  "postgresql": {
+    "host": "localhost",
+    "port": 5432,
+    "user": "user",
+    "password": "password",
+    "database": "nixvis",
+    "sslmode": "disable"
+  },
   "pvFilter": {
     "statusCodeInclude": [
       200
@@ -212,6 +220,40 @@ func validateConfig() bool {
 		fmt.Fprintf(os.Stderr, "配置文件错误: pvFilter.excludePatterns 不能为空\n")
 		fmt.Fprintf(os.Stderr, "请修正配置问题后重新启动服务\n")
 		return true
+	}
+
+	// 检查PostgreSQL配置
+	if cfg.PostgreSQL != nil {
+		if cfg.PostgreSQL.Host == "" {
+			fmt.Fprintf(os.Stderr, "配置文件错误: postgresql.host 不能为空\n")
+			fmt.Fprintf(os.Stderr, "请修正配置问题后重新启动服务\n")
+			return true
+		}
+		if cfg.PostgreSQL.Port == 0 {
+			fmt.Fprintf(os.Stderr, "配置文件错误: postgresql.port 不能为空\n")
+			fmt.Fprintf(os.Stderr, "请修正配置问题后重新启动服务\n")
+			return true
+		}
+		if cfg.PostgreSQL.User == "" {
+			fmt.Fprintf(os.Stderr, "配置文件错误: postgresql.user 不能为空\n")
+			fmt.Fprintf(os.Stderr, "请修正配置问题后重新启动服务\n")
+			return true
+		}
+		if cfg.PostgreSQL.Password == "" {
+			fmt.Fprintf(os.Stderr, "配置文件错误: postgresql.password 不能为空\n")
+			fmt.Fprintf(os.Stderr, "请修正配置问题后重新启动服务\n")
+			return true
+		}
+		if cfg.PostgreSQL.Database == "" {
+			fmt.Fprintf(os.Stderr, "配置文件错误: postgresql.database 不能为空\n")
+			fmt.Fprintf(os.Stderr, "请修正配置问题后重新启动服务\n")
+			return true
+		}
+		if cfg.PostgreSQL.SSLMode == "" {
+			fmt.Fprintf(os.Stderr, "配置文件错误: postgresql.sslmode 不能为空\n")
+			fmt.Fprintf(os.Stderr, "请修正配置问题后重新启动服务\n")
+			return true
+		}
 	}
 
 	return false

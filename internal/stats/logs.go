@@ -105,9 +105,9 @@ func (m *LogsStatsManager) Query(query StatsQuery) (StatsResult, error) {
 	// 构建查询语句
 	var queryBuilder strings.Builder
 	queryBuilder.WriteString(fmt.Sprintf(`
-        SELECT 
-            id, ip, timestamp, method, url, status_code, 
-            bytes_sent, referer, user_browser, user_os, user_device, 
+        SELECT
+            id, ip, timestamp, method, url, status_code,
+            bytes_sent, referer, user_browser, user_os, user_device,
             domestic_location, global_location, pageview_flag
         FROM "%s"`, tableName))
 
@@ -126,8 +126,13 @@ func (m *LogsStatsManager) Query(query StatsQuery) (StatsResult, error) {
 	queryBuilder.WriteString(" LIMIT ? OFFSET ?")
 	args = append(args, pageSize, offset)
 
+	queryString := queryBuilder.String()
+	if m.repo.DBType() == "postgresql" {
+		queryString = rebind(queryString)
+	}
+
 	// 执行查询
-	rows, err := m.repo.GetDB().Query(queryBuilder.String(), args...)
+	rows, err := m.repo.GetDB().Query(queryString, args...)
 	if err != nil {
 		return result, fmt.Errorf("查询日志失败: %v", err)
 	}
@@ -157,18 +162,23 @@ func (m *LogsStatsManager) Query(query StatsQuery) (StatsResult, error) {
 	}
 
 	// 查询总记录数
-	var countQuery strings.Builder
-	countQuery.WriteString(fmt.Sprintf(`SELECT COUNT(*) FROM "%s"`, tableName))
+	var countQueryBuilder strings.Builder
+	countQueryBuilder.WriteString(fmt.Sprintf(`SELECT COUNT(*) FROM "%s"`, tableName))
 
 	var countArgs []interface{}
 	if filter != "" {
-		countQuery.WriteString(" WHERE url LIKE ? OR ip LIKE ? OR referer LIKE ? OR domestic_location LIKE ?")
+		countQueryBuilder.WriteString(" WHERE url LIKE ? OR ip LIKE ? OR referer LIKE ? OR domestic_location LIKE ?")
 		filterArg := "%" + filter + "%"
 		countArgs = append(countArgs, filterArg, filterArg, filterArg, filterArg)
 	}
 
+	countQueryString := countQueryBuilder.String()
+	if m.repo.DBType() == "postgresql" {
+		countQueryString = rebind(countQueryString)
+	}
+
 	var total int
-	err = m.repo.GetDB().QueryRow(countQuery.String(), countArgs...).Scan(&total)
+	err = m.repo.GetDB().QueryRow(countQueryString, countArgs...).Scan(&total)
 	if err != nil {
 		return result, fmt.Errorf("获取日志总数失败: %v", err)
 	}
@@ -181,4 +191,14 @@ func (m *LogsStatsManager) Query(query StatsQuery) (StatsResult, error) {
 	result.Pagination.Pages = (total + pageSize - 1) / pageSize
 
 	return result, nil
+}
+
+// rebind 将 '?' 占位符转换为 '$1', '$2'...
+func rebind(query string) string {
+	n := 0
+	for strings.Contains(query, "?") {
+		n++
+		query = strings.Replace(query, "?", fmt.Sprintf("$%d", n), 1)
+	}
+	return query
 }

@@ -5,6 +5,7 @@ go 1.23.6
 require (
 	github.com/gin-contrib/cors v1.7.4
 	github.com/gin-gonic/gin v1.10.0
+	github.com/lib/pq v1.11.1
 	github.com/lionsoul2014/ip2region/binding/golang v0.0.0-20241220152942-06eb5c6e8230
 	github.com/mileusna/useragent v1.3.5
 	github.com/sirupsen/logrus v1.9.3

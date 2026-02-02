@@ -29,9 +29,11 @@ chmod +x nixvis
 ```
 
 2. 生成配置文件
+
 ```bash
 ./nixvis -gen-config
 ```
+
 执行后将在当前目录生成 nixvis_config.json 配置文件。
 
 3. 编辑配置文件 nixvis_config.json，添加您的网站信息和日志路径
@@ -58,10 +60,16 @@ chmod +x nixvis
   "server": {
     "Port": ":8088"
   },
+  "postgresql": {
+    "host": "localhost",
+    "port": 5432,
+    "user": "user",
+    "password": "password",
+    "database": "nixvis",
+    "sslmode": "disable"
+  },
   "pvFilter": {
-    "statusCodeInclude": [
-      200
-    ],
+    "statusCodeInclude": [200],
     "excludePatterns": [
       "favicon.ico$",
       "robots.txt$",
@@ -75,19 +83,19 @@ chmod +x nixvis
       "feed.xml$",
       "atom.xml$"
     ],
-    "excludeIPs": ["127.0.0.1", "::1"] 
+    "excludeIPs": ["127.0.0.1", "::1"]
   }
 }
 ```
 
 4. 启动 NixVis 服务
+
 ```bash
 ./nixvis
 ```
 
 5. 访问 Web 界面
-http://localhost:8088
-
+   http://localhost:8088
 
 ## 从源码编译
 
@@ -122,7 +130,7 @@ wget https://github.com/beyondxinxin/nixvis/releases/download/docker/nixvis_conf
 如需分析多个日志文件，可以考虑将日志目录整体挂载（如 /var/log/nginx:/var/log/nginx:ro）。
 
 ```yml
-version: '3'
+version: "3"
 services:
   nixvis:
     image: ${{ secrets.DOCKERHUB_USERNAME }}/nixvis:latest
@@ -141,7 +149,7 @@ docker compose up -d
 ```
 
 5. 访问 Web 界面
-http://localhost:8088
+   http://localhost:8088
 
 ## 技术栈
 

@@ -64,15 +64,28 @@ func (s *OverallStatsManager) statsByTimeRangeForWebsite(
 
 	tableName := fmt.Sprintf("%s_nginx_logs", websiteID)
 
-	// 为更精确的统计，直接在数据库中进行全范围的唯一IP计数
-	countQuery := fmt.Sprintf(`
-        SELECT 
-            COUNT(*) as pv,
-            COUNT(DISTINCT ip) as uv,
-            COALESCE(SUM(bytes_sent), 0) as traffic
-        FROM "%s" INDEXED BY idx_%s_pv_ts_ip
-        WHERE pageview_flag = 1 AND timestamp >= ? AND timestamp < ?`,
-		tableName, websiteID)
+	var countQuery string
+	dbType := s.repo.DBType()
+
+	if dbType == "postgresql" {
+		countQuery = fmt.Sprintf(`
+            SELECT 
+                COUNT(*) as pv,
+                COUNT(DISTINCT ip) as uv,
+                COALESCE(SUM(bytes_sent), 0) as traffic
+            FROM "%s"
+            WHERE pageview_flag = 1 AND timestamp >= $1 AND timestamp < $2`,
+			tableName)
+	} else {
+		countQuery = fmt.Sprintf(`
+            SELECT 
+                COUNT(*) as pv,
+                COUNT(DISTINCT ip) as uv,
+                COALESCE(SUM(bytes_sent), 0) as traffic
+            FROM "%s" INDEXED BY idx_%s_pv_ts_ip
+            WHERE pageview_flag = 1 AND timestamp >= ? AND timestamp < ?`,
+			tableName, websiteID)
+	}
 
 	// 执行全范围查询
 	row := s.repo.GetDB().QueryRow(countQuery, startTime.Unix(), endTime.Unix())

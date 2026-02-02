@@ -89,21 +89,38 @@ func (s *ClientStatsManager) Query(query StatsQuery) (StatsResult, error) {
 	}
 
 	// 构建、执行查询
-	dbQueryStr := fmt.Sprintf(`
-        SELECT 
-            %[1]s AS url, 
-            COUNT(*) AS pv,
-            COUNT(DISTINCT ip) AS uv
-        FROM "%[2]s_nginx_logs" INDEXED BY idx_%[2]s_pv_ts_ip
-        WHERE pageview_flag = 1 AND timestamp >= ? AND timestamp < ?
-        GROUP BY %[1]s
-        ORDER BY uv DESC
-        LIMIT ?`,
-		statsType, query.WebsiteID)
+	var dbQueryStr string
+	dbType := s.repo.DBType()
+
+	if dbType == "postgresql" {
+		dbQueryStr = fmt.Sprintf(`
+            SELECT 
+                %[1]s AS url, 
+                COUNT(*) AS pv,
+                COUNT(DISTINCT ip) AS uv
+            FROM "%[2]s_nginx_logs"
+            WHERE pageview_flag = 1 AND timestamp >= $1 AND timestamp < $2
+            GROUP BY %[1]s
+            ORDER BY uv DESC
+            LIMIT $3`,
+			statsType, query.WebsiteID)
+	} else {
+		dbQueryStr = fmt.Sprintf(`
+            SELECT 
+                %[1]s AS url, 
+                COUNT(*) AS pv,
+                COUNT(DISTINCT ip) AS uv
+            FROM "%[2]s_nginx_logs" INDEXED BY idx_%[2]s_pv_ts_ip
+            WHERE pageview_flag = 1 AND timestamp >= ? AND timestamp < ?
+            GROUP BY %[1]s
+            ORDER BY uv DESC
+            LIMIT ?`,
+			statsType, query.WebsiteID)
+	}
 
 	rows, err := s.repo.GetDB().Query(dbQueryStr, startTime.Unix(), endTime.Unix(), limit)
 	if err != nil {
-		return result, fmt.Errorf("查询URL统计失败: %v", err)
+		return result, fmt.Errorf("查询%s统计失败: %v", s.statsType, err)
 	}
 	defer rows.Close()
 

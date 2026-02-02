@@ -5,3 +5,9 @@ nixvis_data/
 weblog_eg/
 nixvis
 nixvis.exe
+bin/
+openspec
+.gemini
+.opencode
+.github/prompts
+.github/skills

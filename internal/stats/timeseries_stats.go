@@ -87,21 +87,39 @@ func (s *TimeSeriesStatsManager) statsByTimePointsForWebsite(
 		args = append(args, startTime.Unix(), endTime.Unix())
 	}
 
-	// 关键优化点3: 构建一次性批量查询SQL
-	batchQuery := fmt.Sprintf(`
-        WITH time_ranges(range_index, start_time, end_time) AS (
-            VALUES %s
-        )
-        SELECT 
-            tr.range_index,
-            COUNT(l.pageview_flag) as pv,
-            COUNT(DISTINCT l.ip) as uv
-        FROM time_ranges tr
-        LEFT JOIN "%s" l INDEXED BY idx_%s_pv_ts_ip
-            ON l.pageview_flag = 1 AND l.timestamp >= tr.start_time AND l.timestamp < tr.end_time
-        GROUP BY tr.range_index
-        ORDER BY tr.range_index`,
-		formatRangeValues(timePointsSize), tableName, websiteID)
+	dbType := s.repo.DBType()
+	var batchQuery string
+	if dbType == "postgresql" {
+		batchQuery = fmt.Sprintf(`
+			WITH time_ranges(range_index, start_time, end_time) AS (
+				VALUES %s
+			)
+			SELECT
+				tr.range_index,
+				COUNT(l.pageview_flag) as pv,
+				COUNT(DISTINCT l.ip) as uv
+			FROM time_ranges tr
+			LEFT JOIN "%s" l
+				ON l.pageview_flag = 1 AND l.timestamp >= tr.start_time AND l.timestamp < tr.end_time
+			GROUP BY tr.range_index
+			ORDER BY tr.range_index`,
+			formatRangeValues(dbType, timePointsSize), tableName)
+	} else {
+		batchQuery = fmt.Sprintf(`
+			WITH time_ranges(range_index, start_time, end_time) AS (
+				VALUES %s
+			)
+			SELECT
+				tr.range_index,
+				COUNT(l.pageview_flag) as pv,
+				COUNT(DISTINCT l.ip) as uv
+			FROM time_ranges tr
+			LEFT JOIN "%s" l INDEXED BY idx_%s_pv_ts_ip
+				ON l.pageview_flag = 1 AND l.timestamp >= tr.start_time AND l.timestamp < tr.end_time
+			GROUP BY tr.range_index
+			ORDER BY tr.range_index`,
+			formatRangeValues(dbType, timePointsSize), tableName, websiteID)
+	}
 
 	rows, err := tx.Query(batchQuery, args...)
 	if err != nil {
@@ -130,10 +148,16 @@ func (s *TimeSeriesStatsManager) statsByTimePointsForWebsite(
 }
 
 // formatRangeValues 生成SQL中的值列表 (0, ?, ?), (1, ?, ?), ...
-func formatRangeValues(count int) string {
+func formatRangeValues(dbType string, count int) string {
 	values := make([]string, count)
-	for i := 0; i < count; i++ {
-		values[i] = fmt.Sprintf("(%d, ?, ?)", i)
+	if dbType == "postgresql" {
+		for i := 0; i < count; i++ {
+			values[i] = fmt.Sprintf("(%d, CAST($%d AS BIGINT), CAST($%d AS BIGINT))", i, i*2+1, i*2+2)
+		}
+	} else {
+		for i := 0; i < count; i++ {
+			values[i] = fmt.Sprintf("(%d, ?, ?)", i)
+		}
 	}
 	return strings.Join(values, ", ")
 }

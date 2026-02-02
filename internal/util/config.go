@@ -4,6 +4,7 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"os"
 	"sync"
 	"time"
@@ -17,10 +18,11 @@ var (
 )
 
 type Config struct {
-	System   SystemConfig    `json:"system"`
-	Server   ServerConfig    `json:"server"`
-	Websites []WebsiteConfig `json:"websites"`
-	PVFilter PVFilterConfig  `json:"pvFilter"`
+	System     SystemConfig      `json:"system"`
+	Server     ServerConfig      `json:"server"`
+	Websites   []WebsiteConfig   `json:"websites"`
+	PVFilter   PVFilterConfig    `json:"pvFilter"`
+	PostgreSQL *PostgreSQLConfig `json:"postgresql"`
 }
 
 type WebsiteConfig struct {
@@ -41,6 +43,15 @@ type PVFilterConfig struct {
 	StatusCodeInclude []int    `json:"statusCodeInclude"`
 	ExcludePatterns   []string `json:"excludePatterns"`
 	ExcludeIPs        []string `json:"excludeIPs"`
+}
+
+type PostgreSQLConfig struct {
+	Host     string `json:"host"`
+	Port     int    `json:"port"`
+	User     string `json:"user"`
+	Password string `json:"password"`
+	Database string `json:"database"`
+	SSLMode  string `json:"sslmode"`
 }
 
 // ReadRawConfig 读取配置文件但不初始化全局变量
@@ -135,4 +146,13 @@ func ParseInterval(intervalStr string, defaultInterval time.Duration) time.Durat
 func generateID(input string) string {
 	hash := md5.Sum([]byte(input))
 	return hex.EncodeToString(hash[:2])
+}
+
+// BuildPostgreSQLConnectionString 构建 PostgreSQL 连接字符串
+func BuildPostgreSQLConnectionString(cfg *PostgreSQLConfig) string {
+	if cfg == nil {
+		return ""
+	}
+	return fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
+		cfg.Host, cfg.Port, cfg.User, cfg.Password, cfg.Database, cfg.SSLMode)
 }
