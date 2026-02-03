@@ -121,6 +121,7 @@ func writeDefaultConfig() error {
   "server": {
     "Port": ":8088"
   },
+	"dbType": "sqlite",
   "postgresql": {
     "host": "localhost",
     "port": 5432,

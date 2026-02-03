@@ -38,7 +38,7 @@ type Repository struct {
 func NewRepository() (*Repository, error) {
 	cfg := util.ReadConfig()
 
-	db, err := NewDatabase(cfg.PostgreSQL)
+	db, err := NewDatabase(cfg)
 	if err != nil {
 		return nil, err
 	}

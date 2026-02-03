@@ -22,6 +22,7 @@ type Config struct {
 	Server     ServerConfig      `json:"server"`
 	Websites   []WebsiteConfig   `json:"websites"`
 	PVFilter   PVFilterConfig    `json:"pvFilter"`
+	DBType     string            `json:"dbType"`
 	PostgreSQL *PostgreSQLConfig `json:"postgresql"`
 }
 
@@ -68,6 +69,11 @@ func ReadRawConfig() (*Config, error) {
 		return nil, err
 	}
 
+	// Set default if still empty
+	if cfg.DBType == "" {
+		cfg.DBType = "sqlite"
+	}
+
 	return cfg, nil
 }
 
@@ -87,6 +93,11 @@ func ReadConfig() *Config {
 	err = json.Unmarshal(bytes, cfg)
 	if err != nil {
 		panic(err)
+	}
+
+	// Set default if still empty
+	if cfg.DBType == "" {
+		cfg.DBType = "sqlite"
 	}
 
 	// 初始化 ID 映射

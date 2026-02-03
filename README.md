@@ -40,6 +40,10 @@ chmod +x nixvis
 
 - 支持日志轮转路径 ([#2](https://github.com/BeyondXinXin/nixvis/issues/2))
 - 支持 PV 过滤规则 ([#21](https://github.com/BeyondXinXin/nixvis/issues/21))
+- 数据库类型配置 (`dbType`):
+  - 您现在可以通过在配置文件顶层添加 `dbType` 键来指定数据库类型，支持 `"sqlite"` 和 `"postgresql"`。
+  - 示例: `"dbType": "postgresql"`
+  - 如果未设置，默认使用 `"sqlite"`。
 
 ```json
 {
@@ -60,6 +64,7 @@ chmod +x nixvis
   "server": {
     "Port": ":8088"
   },
+  "dbType": "sqlite",
   "postgresql": {
     "host": "localhost",
     "port": 5432,
