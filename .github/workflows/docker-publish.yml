@@ -13,10 +13,10 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: "1.23.x"
+          go-version: "1.25.x"
 
       - name: Tidy Go modules
-        run: go mod tidy
+        run: go mod download
 
       - name: Build binary
         run: |
@@ -28,7 +28,7 @@ jobs:
       - name: Generate Dockerfile
         run: |
           cat <<EOF > Dockerfile
-          FROM alpine:3.19
+          FROM alpine:3.23
           WORKDIR /app
           COPY nixvis /app/nixvis
           ENTRYPOINT ["/app/nixvis"]

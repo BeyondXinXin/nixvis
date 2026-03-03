@@ -81,7 +81,12 @@ function renderChinaMap(geoData) {
         },
         geo: {
             map: 'china',
-            roam: true,
+            roam: false,
+            zoom: 1,
+            scaleLimit: {
+                min: 1,
+                max: 1
+            },
             label: {
                 show: false
             },
@@ -138,7 +143,12 @@ function renderWorldMap(geoData) {
             type: 'map',
             map: 'world',
             nameMap: zhWrodNameMap,
-            roam: true,
+            roam: false,
+            zoom: 1,
+            scaleLimit: {
+                min: 1,
+                max: 1
+            },
             label: {
                 show: false
             },
@@ -194,7 +204,7 @@ async function updateGeoMap() {
             name: location,
             value: statsData.uv[index],
             percentage: statsData.uv_percent[index]
-        })).filter(item => item.name !== '国外' && item.name !== '未知');
+        })).filter(item => item.name !== '海外' && item.name !== '未知');
 
         renderChinaMap(geoData);
     } else {
@@ -203,7 +213,7 @@ async function updateGeoMap() {
             name: location,
             value: statsData.uv[index],
             percentage: statsData.uv_percent[index]
-        })).filter(item => item.name !== '国外' && item.name !== '未知');
+        })).filter(item => item.name !== '海外' && item.name !== '未知');
 
         renderWorldMap(geoData);
     }
