@@ -88,6 +88,10 @@ func (s *ClientStatsManager) Query(query StatsQuery) (StatsResult, error) {
 		return result, err
 	}
 
+	if s.statsType == "referer" {
+		return s.queryRefererStats(query, startTime.Unix(), endTime.Unix(), limit)
+	}
+
 	// 构建、执行查询
 	dbQueryStr := fmt.Sprintf(`
         SELECT 

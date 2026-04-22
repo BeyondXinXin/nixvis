@@ -1,6 +1,6 @@
 module github.com/beyondxinxin/nixvis
 
-go 1.25.7
+go 1.26
 
 require (
 	github.com/gin-contrib/cors v1.7.6
