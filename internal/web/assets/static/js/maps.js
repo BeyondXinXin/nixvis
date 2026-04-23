@@ -53,13 +53,22 @@ function bindMapViewToggle() {
     });
 }
 
+function normalizeGeoData(statsData) {
+    const locations = Array.isArray(statsData?.key) ? statsData.key : [];
+    const values = Array.isArray(statsData?.uv) ? statsData.uv : [];
+    const percentages = Array.isArray(statsData?.uv_percent) ? statsData.uv_percent : [];
+
+    return locations.map((location, index) => ({
+        name: location,
+        value: values[index] || 0,
+        percentage: percentages[index] || 0
+    })).filter(item => item.name !== '海外' && item.name !== '未知');
+}
+
 // 渲染中国地图
 function renderChinaMap(geoData) {
-    if (!geoData || geoData.length === 0) {
-        return;
-    }
-
-    const maxValue = geoData[0].value;
+    const hasData = Array.isArray(geoData) && geoData.length > 0;
+    const maxValue = hasData ? geoData[0].value : 10;
     const option = {
         tooltip: {
             trigger: 'item',
@@ -77,7 +86,8 @@ function renderChinaMap(geoData) {
             max: maxValue,
             left: 'left',
             bottom: '10%',
-            calculable: false
+            calculable: false,
+            show: hasData
         },
         geo: {
             map: 'china',
@@ -104,7 +114,7 @@ function renderChinaMap(geoData) {
             type: 'map',
             map: 'china',
             geoIndex: 0,
-            data: geoData
+            data: hasData ? geoData : []
         }]
 
     };
@@ -114,10 +124,8 @@ function renderChinaMap(geoData) {
 
 // 渲染世界地图
 function renderWorldMap(geoData) {
-    if (!geoData || geoData.length === 0) {
-        return;
-    }
-    const maxValue = geoData.length > 0 ? geoData[0].value : 10;
+    const hasData = Array.isArray(geoData) && geoData.length > 0;
+    const maxValue = hasData ? geoData[0].value : 10;
 
     const option = {
         tooltip: {
@@ -136,7 +144,8 @@ function renderWorldMap(geoData) {
             max: maxValue,
             left: 'left',
             bottom: '10%',
-            calculable: false
+            calculable: false,
+            show: hasData
         },
         series: [{
             name: '访问量',
@@ -152,7 +161,7 @@ function renderWorldMap(geoData) {
             label: {
                 show: false
             },
-            data: geoData
+            data: hasData ? geoData : []
         }]
     };
 
@@ -200,20 +209,12 @@ async function updateGeoMap() {
 
     if (currentMapView === 'china') {
         const statsData = await fectchLocationStats(currentWebsiteId, range, "domestic", 99)
-        geoData = statsData.key.map((location, index) => ({
-            name: location,
-            value: statsData.uv[index],
-            percentage: statsData.uv_percent[index]
-        })).filter(item => item.name !== '海外' && item.name !== '未知');
+        geoData = normalizeGeoData(statsData);
 
         renderChinaMap(geoData);
     } else {
         const statsData = await fectchLocationStats(currentWebsiteId, range, "global", 99)
-        geoData = statsData.key.map((location, index) => ({
-            name: location,
-            value: statsData.uv[index],
-            percentage: statsData.uv_percent[index]
-        })).filter(item => item.name !== '海外' && item.name !== '未知');
+        geoData = normalizeGeoData(statsData);
 
         renderWorldMap(geoData);
     }
