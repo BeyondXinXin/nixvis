@@ -153,6 +153,7 @@ func normalizeRefererDomain(referer string) (string, bool) {
 	}
 
 	host = strings.TrimSuffix(strings.ToLower(host), ".")
+	host = strings.TrimPrefix(host, "www.")
 	if host == "" {
 		return "", false
 	}
