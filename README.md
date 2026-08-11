@@ -2,9 +2,22 @@
 
 一个轻量、自部署的 Nginx access log 统计工具。下载一个可执行文件或启动一个 Docker 容器，即可查看网站访问数据。
 
+演示地址：[nixvis.beyondxin.com](https://nixvis.beyondxin.com/)
+
+![NixVis 界面截图](https://img.beyondxin.top/2025/202504201620686.png)
+
 > NixVis 没有内置登录。请只在内网访问，或使用带认证的反向代理，不要直接暴露到公网。
 
-## 快速开始
+## 特点
+
+- 单个可执行文件或 Docker 容器，无需额外服务
+- 多站点与日志轮转支持
+- PV、UV、流量、URL、来源、浏览器、设备与地域统计
+- 小时和天维度的访问趋势
+- 本地 SQLite 存储与增量读取
+- 前端资源和 IP 地理库内嵌，无需部署静态文件
+
+## 部署
 
 ### Linux
 
@@ -61,15 +74,6 @@ docker compose up -d
 - 使用标准 Nginx access log（combined 格式）。自定义 `log_format` 不保证可解析。
 - 程序每 5 分钟增量读取一次日志；可通过 `system.taskInterval` 调整，最小为 5 秒。
 - 运行 `./nixvis -v` 可查看当前二进制版本、构建时间和提交号。
-
-## 特点
-
-- 单个可执行文件或 Docker 容器，无需额外服务
-- 多站点与日志轮转支持
-- PV、UV、流量、URL、来源、浏览器、设备与地域统计
-- 小时和天维度的访问趋势
-- 本地 SQLite 存储与增量读取
-- 前端资源和 IP 地理库内嵌，无需部署静态文件
 
 ## 许可证
 
