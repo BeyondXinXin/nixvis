@@ -1,0 +1,7 @@
+.git
+.github
+.vscode
+nixvis
+nixvis.exe
+nixvis_data
+*.log

@@ -1,153 +1,76 @@
 # NixVis
 
-![](https://github.com/BeyondXinXin/nixvis/actions/workflows/ci-linux.yml/badge.svg?branch=main)
+一个轻量、自部署的 Nginx access log 统计工具。下载一个可执行文件或启动一个 Docker 容器，即可查看网站访问数据。
 
-NixVis 是一款基于 Go 语言开发的、开源轻量级 Nginx 日志分析工具，专为自部署场景设计。它提供直观的数据可视化和全面的统计分析功能，帮助您实时监控网站流量、访问来源和地理分布等关键指标，无需复杂配置即可快速部署使用。
-
-演示地址 [nixvis.beyondxin](https://nixvis.beyondxin.top/)
-
-![](https://img.beyondxin.top/2025/202504201620686.png)
-
-## 功能特点
-
-- **全面访问指标**：实时统计独立访客数 (UV)、页面浏览量 (PV) 和流量数据
-- **地理位置分布**：展示国内和全球访问来源的可视化地图
-- **详细访问排名**：提供 URL、引荐来源、浏览器、操作系统和设备类型的访问排名
-- **时间序列分析**：支持按小时和按天查看访问趋势
-- **多站点支持**：可同时监控多个网站的访问数据
-- **增量日志解析**：自动扫描 Nginx 日志文件，解析并存储最新数据
-- **高性能查询**：存储使用轻量级 SQLite，结合多级缓存策略实现快速响应
-- **嵌入式资源**：前端资源和IP库内嵌于可执行文件中，无需额外部署静态文件
+> NixVis 没有内置登录。请只在内网访问，或使用带认证的反向代理，不要直接暴露到公网。
 
 ## 快速开始
 
-1. 下载最新版本的 NixVis
+### Linux
+
+从 [Releases](https://github.com/BeyondXinXin/nixvis/releases) 下载对应版本，或获取最新稳定版：
 
 ```bash
-wget https://github.com/beyondxinxin/nixvis/releases/download/latest/nixvis
-chmod +x nixvis
-```
-
-2. 生成配置文件
-```bash
+wget https://github.com/BeyondXinXin/nixvis/releases/latest/download/nixvis-linux-amd64
+chmod +x nixvis-linux-amd64
+mv nixvis-linux-amd64 nixvis
 ./nixvis -gen-config
 ```
-执行后将在当前目录生成 nixvis_config.json 配置文件。
 
-3. 编辑配置文件 nixvis_config.json，添加您的网站信息和日志路径
-
-- 支持日志轮转路径 ([#2](https://github.com/BeyondXinXin/nixvis/issues/2))
-- 支持 PV 过滤规则 ([#21](https://github.com/BeyondXinXin/nixvis/issues/21))
+编辑生成的 `nixvis_config.json`，将示例站点改为自己的 access log 文件：
 
 ```json
 {
-  "websites": [
-    {
-      "name": "示例网站1",
-      "logPath": "./weblog_eg/blog.beyondxin.top.log"
-    },
-    {
-      "name": "示例网站2",
-      "logPath": "/var/log/nginx/blog.log"
-    }
-  ],
-  "system": {
-    "logDestination": "file",
-    "taskInterval": "5m"
-  },
-  "server": {
-    "Port": ":8088"
-  },
-  "pvFilter": {
-    "statusCodeInclude": [
-      200
-    ],
-    "excludePatterns": [
-      "favicon.ico$",
-      "robots.txt$",
-      "sitemap.xml$",
-      "\\.(?:js|css|jpg|jpeg|png|gif|svg|webp|woff|woff2|ttf|eot|ico)$",
-      "^/api/",
-      "^/ajax/",
-      "^/health$",
-      "^/_(?:nuxt|next)/",
-      "rss.xml$",
-      "feed.xml$",
-      "atom.xml$"
-    ],
-    "excludeIPs": ["127.0.0.1", "::1"] 
-  }
+  "name": "我的网站",
+  "logPath": "/var/log/nginx/access.log"
 }
 ```
 
-4. 启动 NixVis 服务
+然后启动并访问 `http://localhost:8088`：
+
 ```bash
 ./nixvis
 ```
 
-5. 访问 Web 界面
-http://localhost:8088
+### Docker
 
-
-## 从源码编译
-
-如果您想从源码编译 NixVis，请按照以下步骤操作：
+下载同一版本发布的两个文件：
 
 ```bash
-# 克隆项目仓库
-git clone https://github.com/BeyondXinXin/nixvis.git
-cd nixvis
-
-# 编译项目
-go mod tidy
-go build -o nixvis ./cmd/nixvis/main.go
-
-# 或使用编译脚本
-# bash package.sh
+wget https://github.com/BeyondXinXin/nixvis/releases/latest/download/docker-compose.yml
+wget https://github.com/BeyondXinXin/nixvis/releases/latest/download/nixvis_config.json
 ```
 
-## docker部署
-
-1. 下载 docker-compose
-
-```bash
-wget https://github.com/beyondxinxin/nixvis/releases/download/docker/docker-compose.yml
-wget https://github.com/beyondxinxin/nixvis/releases/download/docker/nixvis_config.json
-```
-
-2. 修改 nixvis_config.json 添加您的网站信息和日志路径
-
-3. 修改 docker-compose.yml 添加文件挂载(nixvis_config.json、日志文件)
-
-如需分析多个日志文件，可以考虑将日志目录整体挂载（如 /var/log/nginx:/var/log/nginx:ro）。
-
-```yml
-version: '3'
-services:
-  nixvis:
-    image: ${{ secrets.DOCKERHUB_USERNAME }}/nixvis:latest
-    ports:
-      - "8088:8088"
-    volumes:
-      - ./nixvis_config.json:/app/nixvis_config.json:ro
-      - /var/log/nginx/blog.log:/var/log/nginx/blog.log:ro
-      - /etc/localtime:/etc/localtime:ro
-```
-
-4. 启动
+编辑 `nixvis_config.json` 中的站点和 `docker-compose.yml` 中的日志挂载路径，再启动：
 
 ```bash
 docker compose up -d
 ```
 
-5. 访问 Web 界面
-http://localhost:8088
+统计数据保存在 `nixvis_data` 中。正常升级不需要删除它：
 
-## 技术栈
+```bash
+docker compose pull
+docker compose up -d
+```
 
-- **后端**: Go语言 (Gin框架、ip2region地理位置查询)
-- **前端**: 原生HTML5/CSS3/JavaScript (ECharts地图可视化、Chart.js图表)
+## 配置注意事项
+
+- `logPath` 填 access log 的**文件路径**，不是目录；轮转日志可使用 glob，例如 `/var/log/nginx/access.log*`。
+- 不支持读取 `.gz` 压缩日志；请在 glob 中排除它们。
+- 使用标准 Nginx access log（combined 格式）。自定义 `log_format` 不保证可解析。
+- 程序每 5 分钟增量读取一次日志；可通过 `system.taskInterval` 调整，最小为 5 秒。
+- 运行 `./nixvis -v` 可查看当前二进制版本、构建时间和提交号。
+
+## 特点
+
+- 单个可执行文件或 Docker 容器，无需额外服务
+- 多站点与日志轮转支持
+- PV、UV、流量、URL、来源、浏览器、设备与地域统计
+- 小时和天维度的访问趋势
+- 本地 SQLite 存储与增量读取
+- 前端资源和 IP 地理库内嵌，无需部署静态文件
 
 ## 许可证
 
-NixVis 使用 MIT 许可证开源发布。详情请查看 LICENSE 文件。
+NixVis 使用 [MIT License](LICENSE) 开源发布。

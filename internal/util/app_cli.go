@@ -6,12 +6,14 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"syscall"
 )
 
 var (
+	Version   = "dev"
 	BuildTime = "unknown"
 	GitCommit = "unknown"
 )
@@ -62,6 +64,7 @@ func ProcessCliCommands() bool {
 
 // showVersion 显示版本信息
 func showVersion() {
+	fmt.Printf("版本: %s\n", Version)
 	fmt.Printf("构建时间: %s\n", BuildTime)
 	fmt.Printf("Git 提交: %s\n", GitCommit)
 }
@@ -181,10 +184,15 @@ func validateConfig() bool {
 					fmt.Sprintf("'%s' (%s - 未找到匹配的文件)",
 						site.Name, site.LogPath))
 			}
-		} else if _, err := os.Stat(site.LogPath); os.IsNotExist(err) {
-			// 普通文件路径
-			missingLogs = append(missingLogs,
-				fmt.Sprintf("'%s' (%s)", site.Name, site.LogPath))
+		} else {
+			info, err := os.Stat(site.LogPath)
+			if err != nil {
+				missingLogs = append(missingLogs,
+					fmt.Sprintf("'%s' (%s - %v)", site.Name, site.LogPath, err))
+			} else if info.IsDir() {
+				missingLogs = append(missingLogs,
+					fmt.Sprintf("'%s' (%s - logPath 必须是日志文件，不是目录)", site.Name, site.LogPath))
+			}
 		}
 	}
 
@@ -212,6 +220,13 @@ func validateConfig() bool {
 		fmt.Fprintf(os.Stderr, "配置文件错误: pvFilter.excludePatterns 不能为空\n")
 		fmt.Fprintf(os.Stderr, "请修正配置问题后重新启动服务\n")
 		return true
+	}
+
+	for _, pattern := range cfg.PVFilter.ExcludePatterns {
+		if _, err := regexp.Compile(pattern); err != nil {
+			fmt.Fprintf(os.Stderr, "配置文件错误: pvFilter.excludePatterns 包含无效正则 %q: %v\n", pattern, err)
+			return true
+		}
 	}
 
 	return false

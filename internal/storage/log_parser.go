@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -17,6 +18,28 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+func writeFileAtomically(path string, data []byte) error {
+	temporaryFile, err := os.CreateTemp(filepath.Dir(path), ".nixvis-*")
+	if err != nil {
+		return err
+	}
+	temporaryPath := temporaryFile.Name()
+	defer os.Remove(temporaryPath)
+
+	if err := temporaryFile.Chmod(0644); err != nil {
+		temporaryFile.Close()
+		return err
+	}
+	if _, err := temporaryFile.Write(data); err != nil {
+		temporaryFile.Close()
+		return err
+	}
+	if err := temporaryFile.Close(); err != nil {
+		return err
+	}
+	return os.Rename(temporaryPath, path)
+}
+
 var (
 	nginxLogPattern = regexp.MustCompile(`^(\S+) - (\S+) \[([^\]]+)\] "(\S+) ([^"]+) HTTP\/\d\.\d" (\d+) (\d+) "([^"]*)" "([^"]*)"`)
 	lastCleanupDate = ""
@@ -24,12 +47,13 @@ var (
 
 // 解析结果
 type ParserResult struct {
-	WebName      string
-	WebID        string
-	TotalEntries int
-	Duration     time.Duration
-	Success      bool
-	Error        error
+	WebName        string
+	WebID          string
+	TotalEntries   int
+	SkippedEntries int
+	Duration       time.Duration
+	Success        bool
+	Error          error
 }
 
 type LogScanState struct {
@@ -89,7 +113,7 @@ func (p *LogParser) updateState() {
 		return
 	}
 
-	if err := os.WriteFile(p.statePath, data, 0644); err != nil {
+	if err := writeFileAtomically(p.statePath, data); err != nil {
 		logrus.Errorf("保存扫描状态失败: %v", err)
 	}
 }
@@ -160,10 +184,19 @@ func (p *LogParser) ScanNginxLogs() []ParserResult {
 // scanSingleFile 扫描单个日志文件
 func (p *LogParser) scanSingleFile(
 	websiteID string, logPath string, parserResult *ParserResult) {
+	if strings.HasSuffix(strings.ToLower(logPath), ".gz") {
+		parserResult.Success = false
+		parserResult.Error = fmt.Errorf("不支持压缩日志文件 %s，请在 logPath 中排除 .gz 文件", logPath)
+		logrus.Warn(parserResult.Error)
+		return
+	}
+
 	// 打开文件
 	file, err := os.Open(logPath)
 	if err != nil {
 		logrus.Errorf("无法打开日志文件 %s: %v", logPath, err)
+		parserResult.Success = false
+		parserResult.Error = fmt.Errorf("无法读取日志文件 %s: %w", logPath, err)
 		return
 	}
 	defer file.Close()
@@ -172,6 +205,8 @@ func (p *LogParser) scanSingleFile(
 	fileInfo, err := file.Stat()
 	if err != nil {
 		logrus.Errorf("无法获取文件信息 %s: %v", logPath, err)
+		parserResult.Success = false
+		parserResult.Error = fmt.Errorf("无法获取日志文件信息 %s: %w", logPath, err)
 		return
 	}
 
@@ -183,11 +218,19 @@ func (p *LogParser) scanSingleFile(
 	_, err = file.Seek(startOffset, 0)
 	if err != nil {
 		logrus.Errorf("无法设置文件读取位置 %s: %v", logPath, err)
+		parserResult.Success = false
+		parserResult.Error = fmt.Errorf("无法定位日志文件 %s: %w", logPath, err)
 		return
 	}
 
 	// 读取并解析日志
 	entriesCount := p.parseLogLines(file, websiteID, parserResult)
+	if entriesCount < 0 {
+		parserResult.Success = false
+		parserResult.Error = errors.New("日志写入失败，读取进度未更新，将在下一轮重试")
+		return
+	}
+	parserResult.TotalEntries += entriesCount
 
 	// 更新文件状态
 	p.updateFileState(websiteID, logPath, currentSize)
@@ -257,6 +300,7 @@ func (p *LogParser) determineStartOffset(
 func (p *LogParser) parseLogLines(
 	file *os.File, websiteID string, parserResult *ParserResult) int {
 	scanner := bufio.NewScanner(file)
+	scanner.Buffer(make([]byte, 64*1024), 1024*1024)
 	entriesCount := 0
 
 	// 批量插入相关
@@ -264,16 +308,18 @@ func (p *LogParser) parseLogLines(
 	batch := make([]NginxLogRecord, 0, batchSize)
 
 	// 处理一批数据
-	processBatch := func() {
+	processBatch := func() error {
 		if len(batch) == 0 {
-			return
+			return nil
 		}
 
 		if err := p.repo.BatchInsertLogsForWebsite(websiteID, batch); err != nil {
 			logrus.Errorf("批量插入网站 %s 的日志记录失败: %v", websiteID, err)
+			return err
 		}
 
 		batch = batch[:0] // 清空批次但保留容量
+		return nil
 	}
 
 	// 逐行处理
@@ -281,21 +327,25 @@ func (p *LogParser) parseLogLines(
 		line := scanner.Text()
 		entry, err := p.parseNginxLogLine(line)
 		if err != nil {
+			parserResult.SkippedEntries++
 			continue
 		}
 		batch = append(batch, *entry)
 		entriesCount++
-		parserResult.TotalEntries++ // 累加到总结果中，而非赋值
-
 		if len(batch) >= batchSize {
-			processBatch()
+			if err := processBatch(); err != nil {
+				return -1
+			}
 		}
 	}
 
-	processBatch() // 处理剩余的记录
+	if err := processBatch(); err != nil { // 处理剩余的记录
+			return -1
+		}
 
 	if err := scanner.Err(); err != nil {
 		logrus.Errorf("扫描网站 %s 的文件时出错: %v", websiteID, err)
+		return -1
 	}
 
 	return entriesCount // 返回当前文件的日志条数

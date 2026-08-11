@@ -215,9 +215,9 @@ func executePeriodicTasks(parser *storage.LogParser) {
 
 			if result.Success {
 				successCount++
-				if result.TotalEntries > 0 {
-					logrus.Infof("网站 %s (%s) 扫描完成: %d 条记录, 耗时 %.2fs",
-						result.WebName, result.WebID, result.TotalEntries, result.Duration.Seconds())
+				if result.TotalEntries > 0 || result.SkippedEntries > 0 {
+					logrus.Infof("网站 %s (%s) 扫描完成: 写入 %d 条，跳过 %d 条，耗时 %.2fs",
+						result.WebName, result.WebID, result.TotalEntries, result.SkippedEntries, result.Duration.Seconds())
 				}
 			} else {
 				logrus.Warnf("网站 %s (%s) 扫描失败: %s",

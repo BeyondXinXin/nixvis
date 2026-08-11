@@ -1,0 +1,32 @@
+{
+  "websites": [
+    {
+      "name": "我的网站",
+      "logPath": "/var/log/nginx/access.log"
+    }
+  ],
+  "system": {
+    "logDestination": "stdout",
+    "taskInterval": "5m"
+  },
+  "server": {
+    "Port": ":8088"
+  },
+  "pvFilter": {
+    "statusCodeInclude": [200],
+    "excludePatterns": [
+      "favicon.ico$",
+      "robots.txt$",
+      "sitemap.xml$",
+      "\\.(?:js|css|jpg|jpeg|png|gif|svg|webp|woff|woff2|ttf|eot|ico)$",
+      "^/api/",
+      "^/ajax/",
+      "^/health$",
+      "^/_(?:nuxt|next)/",
+      "rss.xml$",
+      "feed.xml$",
+      "atom.xml$"
+    ],
+    "excludeIPs": ["127.0.0.1", "::1"]
+  }
+}

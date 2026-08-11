@@ -1,0 +1,14 @@
+services:
+  nixvis:
+    image: beyondxinxin/nixvis:${NIXVIS_VERSION:-latest}
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8088:8088"
+    volumes:
+      - ./nixvis_config.json:/app/nixvis_config.json:ro
+      - /var/log/nginx/access.log:/var/log/nginx/access.log:ro
+      - nixvis_data:/app/nixvis_data
+      - /etc/localtime:/etc/localtime:ro
+
+volumes:
+  nixvis_data:

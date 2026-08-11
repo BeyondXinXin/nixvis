@@ -1,0 +1,69 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+env:
+  DOCKER_IMAGE: beyondxinxin/nixvis
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+
+      - name: Verify source
+        run: go test ./...
+
+      - name: Build release binaries
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          VERSION="${GITHUB_REF_NAME}"
+          BUILD_TIME="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+          GIT_COMMIT="${GITHUB_SHA::7}"
+          LDFLAGS="-s -w -X github.com/beyondxinxin/nixvis/internal/util.Version=${VERSION} -X github.com/beyondxinxin/nixvis/internal/util.BuildTime=${BUILD_TIME} -X github.com/beyondxinxin/nixvis/internal/util.GitCommit=${GIT_COMMIT}"
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags="$LDFLAGS" -o dist/nixvis-linux-amd64 ./cmd/nixvis/main.go
+          CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -trimpath -ldflags="$LDFLAGS" -o dist/nixvis-windows-amd64.exe ./cmd/nixvis/main.go
+          cp docker-compose.yml dist/docker-compose.yml
+          cp nixvis_config.json dist/nixvis_config.json
+          cd dist
+          sha256sum nixvis-linux-amd64 nixvis-windows-amd64.exe docker-compose.yml nixvis_config.json > checksums.txt
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Publish Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          build-args: |
+            VERSION=${{ github.ref_name }}
+            BUILD_TIME=${{ github.event.repository.updated_at }}
+            GIT_COMMIT=${{ github.sha }}
+          tags: |
+            ${{ env.DOCKER_IMAGE }}:${{ github.ref_name }}
+            ${{ env.DOCKER_IMAGE }}:latest
+
+      - name: Publish GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: dist/*
